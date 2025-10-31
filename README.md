@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Quick Sale HR Cloud
 
 HR Cloud Attendance System built with Flask, SQLite (upgrade-ready for PostgreSQL), SQLAlchemy, Bootstrap 5, and full Arabic/English support (RTL/LTR).
@@ -72,3 +73,6 @@ README.md
 
 ---
 جميع الشاشات تدعم اللغة العربية بالكامل (اتجاه الكتابة من اليمين إلى اليسار).
+=======
+# Quick-Sale-HR
+>>>>>>> 2f7024bad354160398caf85e726059d30b430684
