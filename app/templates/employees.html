@@ -1,0 +1,115 @@
+
+{% extends 'base.html' %}
+{% block title %}{{ 'الموظفين' if lang == 'ar' else 'Employees' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2 class="theme-color fw-bold text-center"><i class="bi bi-people"></i> {{ 'إدارة الموظفين' if lang == 'ar' else 'Employees Management' }}</h2>
+    </div>
+    <!-- Cards Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4 col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <span class="fs-1 text-primary"><i class="bi bi-people"></i></span>
+                    <h6 class="mt-2">{{ 'عدد الموظفين' if lang == 'ar' else 'Total Employees' }}</h6>
+                    <div class="display-6 fw-bold">{{ employees|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <span class="fs-1 text-success"><i class="bi bi-person-check"></i></span>
+                    <h6 class="mt-2">{{ 'الموظفين النشطين' if lang == 'ar' else 'Active Employees' }}</h6>
+                    <div class="display-6 fw-bold">{{ employees|selectattr('active')|list|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <span class="fs-1 text-danger"><i class="bi bi-person-x"></i></span>
+                    <h6 class="mt-2">{{ 'غير النشطين' if lang == 'ar' else 'Inactive Employees' }}</h6>
+                    <div class="display-6 fw-bold">{{ employees|rejectattr('active')|list|length }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- نموذج إضافة موظف جديد -->
+    <div class="card mb-4">
+        <div class="card-header bg-theme text-white fw-bold"><i class="bi bi-person-plus"></i> {{ 'إضافة موظف جديد' if lang == 'ar' else 'Add New Employee' }}</div>
+        <div class="card-body">
+            <form class="row g-2" method="POST">
+                {{ csrf_token() }}
+                <div class="col-md-2">
+                    <input type="text" name="code" class="form-control" placeholder="{{ 'الكود' if lang == 'ar' else 'Code' }}" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="name" class="form-control" placeholder="{{ 'الاسم' if lang == 'ar' else 'Name' }}" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="job_title" class="form-control" placeholder="{{ 'المسمى الوظيفي' if lang == 'ar' else 'Job Title' }}">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="department" class="form-control" placeholder="{{ 'القسم' if lang == 'ar' else 'Department' }}">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="phone" class="form-control" placeholder="{{ 'الهاتف' if lang == 'ar' else 'Phone' }}">
+                </div>
+                <div class="col-md-2">
+                    <input type="email" name="email" class="form-control" placeholder="{{ 'البريد الإلكتروني' if lang == 'ar' else 'Email' }}">
+                </div>
+                <div class="col-md-1">
+                    <select name="active" class="form-select">
+                        <option value="1">{{ 'نشط' if lang == 'ar' else 'Active' }}</option>
+                        <option value="0">{{ 'غير نشط' if lang == 'ar' else 'Inactive' }}</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button class="btn bg-theme w-100" type="submit"><i class="bi bi-plus-lg"></i> {{ 'إضافة' if lang == 'ar' else 'Add' }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- بحث الموظفين -->
+    <form class="d-flex mb-3" method="GET">
+        <input type="text" name="search" class="form-control me-2" placeholder="{{ 'بحث' if lang == 'ar' else 'Search' }}">
+        <button class="btn bg-theme" type="submit"><i class="bi bi-search"></i> {{ 'بحث' if lang == 'ar' else 'Search' }}</button>
+    </form>
+    <!-- جدول الموظفين -->
+    <div class="card">
+        <div class="card-header bg-theme text-white fw-bold"><i class="bi bi-table"></i> {{ 'قائمة الموظفين' if lang == 'ar' else 'Employees List' }}</div>
+        <div class="card-body p-0">
+            <table class="table table-bordered table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>{{ 'الكود' if lang == 'ar' else 'Code' }}</th>
+                        <th>{{ 'الاسم' if lang == 'ar' else 'Name' }}</th>
+                        <th>{{ 'المسمى الوظيفي' if lang == 'ar' else 'Job Title' }}</th>
+                        <th>{{ 'القسم' if lang == 'ar' else 'Department' }}</th>
+                        <th>{{ 'الهاتف' if lang == 'ar' else 'Phone' }}</th>
+                        <th>{{ 'البريد الإلكتروني' if lang == 'ar' else 'Email' }}</th>
+                        <th>{{ 'نشط' if lang == 'ar' else 'Active' }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in employees %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ emp.code }}</td>
+                        <td>{{ emp.name }}</td>
+                        <td>{{ emp.job_title }}</td>
+                        <td>{{ emp.department }}</td>
+                        <td>{{ emp.phone }}</td>
+                        <td>{{ emp.email }}</td>
+                        <td>{{ 'نعم' if emp.active else 'لا' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'الإعدادات' if lang == 'ar' else 'Settings' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-3">
+        <h2 class="theme-color">{{ 'إعدادات النظام' if lang == 'ar' else 'System Settings' }}</h2>
+        <form method="POST">
+            {{ csrf_token() }}
+            <div class="mb-3">
+                <label>{{ 'خط العرض للشركة' if lang == 'ar' else 'Company Latitude' }}</label>
+                <input type="number" step="any" name="company_lat" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label>{{ 'خط الطول للشركة' if lang == 'ar' else 'Company Longitude' }}</label>
+                <input type="number" step="any" name="company_lng" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label>{{ 'تاريخ بداية الدوام' if lang == 'ar' else 'Work Start Date' }}</label>
+                <input type="date" name="work_start_date" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label>{{ 'بداية الدوام' if lang == 'ar' else 'Work Start' }}</label>
+                <input type="time" name="work_start" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label>{{ 'تاريخ نهاية الدوام' if lang == 'ar' else 'Work End Date' }}</label>
+                <input type="date" name="work_end_date" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label>{{ 'نهاية الدوام' if lang == 'ar' else 'Work End' }}</label>
+                <input type="time" name="work_end" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label>{{ 'فاصل التنبيه (دقائق)' if lang == 'ar' else 'Presence Interval (min)' }}</label>
+                <input type="number" name="presence_interval_min" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label>{{ 'مهلة التنبيه (دقائق)' if lang == 'ar' else 'Presence Grace (min)' }}</label>
+                <input type="number" name="presence_grace_min" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label>{{ 'تفعيل صوت التنبيه' if lang == 'ar' else 'Enable Presence Sound' }}</label>
+                <input type="checkbox" name="presence_sound_enabled">
+            </div>
+            <button type="submit" class="btn bg-theme">{{ 'حفظ' if lang == 'ar' else 'Save' }}</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

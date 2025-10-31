@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'سجل التدقيق' if lang == 'ar' else 'Audit Log' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="theme-color">{{ 'سجل أنشطة النظام' if lang=='ar' else 'System Audit Log' }}</h2>
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>{{ 'المستخدم' if lang=='ar' else 'User ID' }}</th>
+                    <th>{{ 'الحدث' if lang=='ar' else 'Action' }}</th>
+                    <th>{{ 'النوع' if lang=='ar' else 'Object Type' }}</th>
+                    <th>{{ 'معرف الكائن' if lang=='ar' else 'Object ID' }}</th>
+                    <th>{{ 'التفاصيل' if lang=='ar' else 'Details' }}</th>
+                    <th>{{ 'الوقت' if lang=='ar' else 'Timestamp' }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ r.user_id }}</td>
+                    <td>{{ r.action }}</td>
+                    <td>{{ r.object_type }}</td>
+                    <td>{{ r.object_id }}</td>
+                    <td>{{ r.details }}</td>
+                    <td>{{ r.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

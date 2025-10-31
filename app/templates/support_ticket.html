@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}دعم العملاء{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+        <div class="card p-4 mb-4">
+            <h4 class="mb-3">تسجيل مشكلة أو طلب دعم عميل</h4>
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">رقم هاتف العميل</label>
+                    <input type="text" name="customer_phone" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">اسم العميل</label>
+                    <input type="text" name="customer_name" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">وصف المشكلة</label>
+                    <textarea name="issue" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">تم حل المشكلة من الموظف؟</label>
+                    <input type="checkbox" name="resolved_by_employee">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">تم عرض المشكلة على الإدارة؟</label>
+                    <input type="checkbox" name="shown_to_management">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">تم حل المشكلة من الإدارة؟</label>
+                    <input type="checkbox" name="resolved_by_management">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">رد الإدارة على الحل</label>
+                    <textarea name="management_response" class="form-control" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn bg-theme w-100">حفظ الطلب</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-10">
+        <h5 class="mb-3">آخر طلبات الدعم</h5>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>رقم</th>
+                    <th>هاتف العميل</th>
+                    <th>اسم العميل</th>
+                    <th>المشكلة</th>
+                    <th>تم حلها من الموظف</th>
+                    <th>تم عرضها على الإدارة</th>
+                    <th>تم حلها من الإدارة</th>
+                    <th>رد الإدارة</th>
+                    <th>تاريخ الإنشاء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tickets %}
+                <tr>
+                    <td>{{ t.id }}</td>
+                    <td>{{ t.customer_phone }}</td>
+                    <td>{{ t.customer_name }}</td>
+                    <td>{{ t.issue }}</td>
+                    <td>{{ 'نعم' if t.resolved_by_employee else 'لا' }}</td>
+                    <td>{{ 'نعم' if t.shown_to_management else 'لا' }}</td>
+                    <td>{{ 'نعم' if t.resolved_by_management else 'لا' }}</td>
+                    <td>{{ t.management_response or '-' }}</td>
+                    <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9">لا توجد طلبات دعم بعد</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

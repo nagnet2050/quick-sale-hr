@@ -1,0 +1,244 @@
+
+{% extends 'base.html' %}
+{% block title %}{{ 'الرواتب' if lang == 'ar' else 'Payroll' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2 class="theme-color fw-bold text-center"><i class="bi bi-cash-stack"></i> {{ 'إدارة الرواتب' if lang == 'ar' else 'Payroll Management' }}</h2>
+    </div>
+    <!-- Cards Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4 col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <span class="fs-1 text-success"><i class="bi bi-cash-stack"></i></span>
+                    <h6 class="mt-2">{{ 'إجمالي الرواتب' if lang == 'ar' else 'Total Payroll' }}</h6>
+                    <div class="display-6 fw-bold">{{ total_payroll or 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <span class="fs-1 text-primary"><i class="bi bi-person-check"></i></span>
+                    <h6 class="mt-2">{{ 'عدد الرواتب المدفوعة' if lang == 'ar' else 'Paid Payrolls' }}</h6>
+                    <div class="display-6 fw-bold">{{ paid_payrolls or 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <span class="fs-1 text-danger"><i class="bi bi-person-x"></i></span>
+                    <h6 class="mt-2">{{ 'الرواتب غير المدفوعة' if lang == 'ar' else 'Unpaid Payrolls' }}</h6>
+                    <div class="display-6 fw-bold">{{ unpaid_payrolls or 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Filter (GET) -->
+    <div class="card mb-4">
+        <div class="card-header bg-theme text-white fw-bold"><i class="bi bi-funnel"></i> {{ 'تصفية الرواتب' if lang == 'ar' else 'Payroll Filter' }}</div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">{{ 'بداية الفترة' if lang == 'ar' else 'Period Start' }}</label>
+                    <input type="date" name="period_start" value="{{ filters.period_start or '' }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">{{ 'نهاية الفترة' if lang == 'ar' else 'Period End' }}</label>
+                    <input type="date" name="period_end" value="{{ filters.period_end or '' }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">{{ 'الموظف' if lang == 'ar' else 'Employee' }}</label>
+                    <select name="employee_id" class="form-control">
+                        <option value="">{{ 'الكل' if lang=='ar' else 'All' }}</option>
+                        {% for e in employees %}
+                        <option value="{{ e.id }}" {% if filters.employee_id and filters.employee_id|int == e.id %}selected{% endif %}>{{ e.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 align-self-end">
+                    <button class="btn bg-theme" type="submit"><i class="bi bi-funnel"></i> {{ 'تصفية' if lang=='ar' else 'Filter' }}</button>
+                    <a class="btn btn-outline-secondary ms-2" href="{{ url_for('payroll.payroll_export') }}?period_start={{ filters.period_start or '' }}&period_end={{ filters.period_end or '' }}&employee_id={{ filters.employee_id or '' }}"><i class="bi bi-file-earmark-arrow-down"></i> {{ 'تصدير CSV' if lang=='ar' else 'Export CSV' }}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Generate form (POST) -->
+    <div class="card mb-4">
+        <div class="card-header bg-theme text-white fw-bold"><i class="bi bi-plus-circle"></i> {{ 'توليد رواتب جديدة' if lang == 'ar' else 'Generate New Payroll' }}</div>
+        <div class="card-body">
+            <form method="POST" class="row g-3">
+                {{ csrf_token() }}
+                <div class="col-md-2">
+                    <label class="form-label">{{ 'بداية الفترة' if lang == 'ar' else 'Period Start' }}</label>
+                    <input type="date" name="period_start" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">{{ 'نهاية الفترة' if lang == 'ar' else 'Period End' }}</label>
+                    <input type="date" name="period_end" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">{{ 'الموظف (اختياري)' if lang=='ar' else 'Employee (optional)' }}</label>
+                    <select name="employee_id" class="form-control">
+                        <option value="">{{ 'الكل' if lang=='ar' else 'All' }}</option>
+                        {% for e in employees %}
+                        <option value="{{ e.id }}">{{ e.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">{{ 'مكافأة (اختياري)' if lang=='ar' else 'Bonus (optional)' }}</label>
+                    <input type="number" step="0.01" name="bonus" class="form-control" placeholder="0.00">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">{{ 'عمل إضافي (مبلغ)' if lang=='ar' else 'Overtime (amount)' }}</label>
+                    <input type="number" step="0.01" name="overtime" class="form-control" placeholder="0.00">
+                </div>
+                <div class="col-md-2 align-self-end">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <input type="number" step="0.01" name="deductions" class="form-control d-inline-block w-50" placeholder="{{ 'الخصومات' if lang=='ar' else 'Deductions' }}">
+                        <button class="btn bg-theme ms-2" type="submit"><i class="bi bi-plus-circle"></i> {{ 'توليد رواتب' if lang == 'ar' else 'Generate Payroll' }}</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- جدول الرواتب -->
+    <div class="card">
+        <div class="card-header bg-theme text-white fw-bold"><i class="bi bi-table"></i> {{ 'قائمة الرواتب' if lang == 'ar' else 'Payroll List' }}</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+            <table class="table table-bordered table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>{{ 'الموظف' if lang == 'ar' else 'Employee' }}</th>
+                        <th>{{ 'الفترة' if lang == 'ar' else 'Period' }}</th>
+                        <th>{{ 'الأساسي' if lang == 'ar' else 'Basic' }}</th>
+                        <th>{{ 'البدلات' if lang == 'ar' else 'Allowances' }}</th>
+                        <th>{{ 'المكافأة' if lang=='ar' else 'Bonus' }}</th>
+                        <th>{{ 'العمل الإضافي' if lang=='ar' else 'Overtime' }}</th>
+                        <th>{{ 'الخصومات' if lang == 'ar' else 'Deductions' }}</th>
+                        <th>{{ 'الضريبة' if lang=='ar' else 'Tax' }}</th>
+                        <th>{{ 'التأمين' if lang=='ar' else 'Insurance' }}</th>
+                        <th>{{ 'الصافي' if lang == 'ar' else 'Net' }}</th>
+                        <th>{{ 'تاريخ الإنشاء' if lang == 'ar' else 'Generated At' }}</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in payroll_rows %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ p.employee }}</td>
+                        <td>{{ p.period_start }} - {{ p.period_end }}</td>
+                        <td>{{ p.basic }}</td>
+                        <td>{{ p.allowances }}</td>
+                        <td>{{ p.bonus if p.bonus is defined else '' }}</td>
+                        <td>{{ p.overtime if p.overtime is defined else '' }}</td>
+                        <td>{{ p.deductions }}</td>
+                        <td>{{ p.tax if p.tax is defined else '' }}</td>
+                        <td>{{ p.insurance if p.insurance is defined else '' }}</td>
+                        <td>{{ p.net }}</td>
+                        <td>{{ p.generated_at }}</td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('payroll.payroll_payslip', pay_id=p.id) }}"><i class="bi bi-file-earmark-pdf"></i> {{ 'قسيمة' if lang=='ar' else 'Payslip' }}</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="13">{{ 'لا توجد سجلات' if lang=='ar' else 'No records' }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ 'الرواتب' if lang == 'ar' else 'Payroll' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-3">
+        <h2 class="theme-color">{{ 'إدارة الرواتب' if lang == 'ar' else 'Payroll Management' }}</h2>
+        <form method="POST" class="row g-3 mb-4">
+            {{ csrf_token() }}
+            <div class="col-md-3">
+                <label class="form-label">{{ 'بداية الفترة' if lang == 'ar' else 'Period Start' }}</label>
+                <input type="date" name="period_start" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">{{ 'نهاية الفترة' if lang == 'ar' else 'Period End' }}</label>
+                <input type="date" name="period_end" class="form-control">
+            </div>
+            <div class="col-md-2 align-self-end">
+                <button class="btn bg-theme" type="submit">{{ 'توليد رواتب' if lang == 'ar' else 'Generate Payroll' }}</button>
+            </div>
+            <div class="col-md-2 align-self-end">
+                <a class="btn btn-outline-secondary" href="/payroll/export">{{ 'تصدير CSV' if lang=='ar' else 'Export CSV' }}</a>
+            </div>
+        </form>
+
+        <h4>{{ 'الرواتب المولدة' if lang == 'ar' else 'Generated Payrolls' }}</h4>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>{{ 'الموظف' if lang == 'ar' else 'Employee' }}</th>
+                    <th>{{ 'الفترة' if lang == 'ar' else 'Period' }}</th>
+                    <th>{{ 'الأساسي' if lang == 'ar' else 'Basic' }}</th>
+                    <th>{{ 'البدلات' if lang == 'ar' else 'Allowances' }}</th>
+                    <th>{{ 'الخصومات' if lang == 'ar' else 'Deductions' }}</th>
+                    <th>{{ 'الصافي' if lang == 'ar' else 'Net' }}</th>
+                    <th>{{ 'تاريخ الإنشاء' if lang == 'ar' else 'Generated At' }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in payroll_rows %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ p.employee }}</td>
+                    <td>{{ p.period_start }} - {{ p.period_end }}</td>
+                    <td>{{ p.basic }}</td>
+                    <td>{{ p.allowances }}</td>
+                    <td>{{ p.deductions }}</td>
+                    <td>{{ p.net }}</td>
+                    <td>{{ p.generated_at }}</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary" href="/payroll/payslip/{{ p.id }}">{{ 'قسيمة' if lang=='ar' else 'Payslip' }}</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ 'الرواتب' if lang == 'ar' else 'Payroll' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-3">
+        <h2 class="theme-color">{{ 'إدارة الرواتب' if lang == 'ar' else 'Payroll Management' }}</h2>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>{{ 'الموظف' if lang == 'ar' else 'Employee' }}</th>
+                    <th>{{ 'الراتب' if lang == 'ar' else 'Salary' }}</th>
+                    <th>{{ 'الحوافز' if lang == 'ar' else 'Bonus' }}</th>
+                    <th>{{ 'الخصومات' if lang == 'ar' else 'Deductions' }}</th>
+                    <th>{{ 'الشهر' if lang == 'ar' else 'Month' }}</th>
+                    <th>{{ 'الحالة' if lang == 'ar' else 'Status' }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Payroll data here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

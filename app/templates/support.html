@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}الدعم الفني{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <h2 class="theme-color mb-3">تسجيل دعم فني جديد</h2>
+        <form method="POST">
+            <div class="mb-3">
+                <label>رقم تليفون العميل</label>
+                <input type="text" name="client_phone" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label>وصف المشكلة</label>
+                <textarea name="issue" class="form-control" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label>الوقت المستغرق (دقائق)</label>
+                <input type="number" name="time_spent" class="form-control" required>
+            </div>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="resolved" id="resolved">
+                <label class="form-check-label" for="resolved">تم حل المشكلة</label>
+            </div>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="escalated" id="escalated">
+                <label class="form-check-label" for="escalated">تم ترحيلها للإدارة</label>
+            </div>
+            <button type="submit" class="btn bg-theme">تسجيل الدعم</button>
+        </form>
+    </div>
+    <div class="col-md-6">
+        <h2 class="theme-color mb-3">سجل الدعم الفني</h2>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>رقم العميل</th>
+                    <th>المشكلة</th>
+                    <th>الحل</th>
+                    <th>ترحيل</th>
+                    <th>الوقت (د)</th>
+                    <th>تاريخ التسجيل</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tickets %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ t.client_phone }}</td>
+                    <td>{{ t.issue }}</td>
+                    <td>{{ 'تم الحل' if t.resolved else '-' }}</td>
+                    <td>{{ 'تم الترحيل' if t.escalated else '-' }}</td>
+                    <td>{{ t.time_spent }}</td>
+                    <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

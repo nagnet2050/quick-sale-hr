@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'خريطة الحضور' if lang == 'ar' else 'Attendance Map' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-3">
+        <h2 class="theme-color">{{ 'خريطة مواقع الحضور والانصراف' if lang == 'ar' else 'Attendance Locations Map' }}</h2>
+        <div id="map" style="height: 500px; width: 100%;"></div>
+    </div>
+</div>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC7OYfdpB1HU5Ui6YYDfCfOyXG4jDsea00"></script>
+<script>
+    var attendanceData = {{ attendance_json | safe }};
+    function initMap() {
+        var center = {lat: 24.7136, lng: 46.6753}; // مركز الشركة الافتراضي
+        var map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 8,
+            center: center
+        });
+        attendanceData.forEach(function(att) {
+            var marker = new google.maps.Marker({
+                position: {lat: att.lat, lng: att.lng},
+                map: map,
+                title: att.name + ' - ' + att.time
+            });
+            var info = new google.maps.InfoWindow({
+                content: `<b>${att.name}</b><br>${att.action} - ${att.time}<br>${att.address}`
+            });
+            marker.addListener('click', function() {
+                info.open(map, marker);
+            });
+        });
+    }
+    window.onload = initMap;
+</script>
+{% endblock %}

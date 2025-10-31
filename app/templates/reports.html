@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'التقارير' if lang == 'ar' else 'Reports' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="theme-color">{{ 'لوحة التقارير' if lang=='ar' else 'Reports Dashboard' }}</h2>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card p-3 mb-3">
+                    <h5>{{ 'إجمالي الموظفين' if lang=='ar' else 'Total Employees' }}</h5>
+                    <p class="display-6">{{ stats.total_employees }}</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 mb-3">
+                    <h5>{{ 'إجازات معلقة' if lang=='ar' else 'Pending Leaves' }}</h5>
+                    <p class="display-6">{{ stats.pending_leaves }}</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 mb-3">
+                    <h5>{{ 'متوسط درجات الأداء' if lang=='ar' else 'Avg Performance Score' }}</h5>
+                    <p class="display-6">{{ stats.avg_score or '-' }}</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 mb-3">
+                    <h5>{{ 'سجلات حضور حديثة' if lang=='ar' else 'Recent Attendance' }}</h5>
+                    <p class="display-6">{{ stats.recent_attendance_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Quick Sale HR Cloud{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <img src="/static/img/logo.png" class="logo mb-4" alt="Logo">
+        <h1 class="theme-color mb-3">{{ 'نظام الحضور السحابي للموارد البشرية' if lang == 'ar' else 'HR Cloud Attendance System' }}</h1>
+        <p class="lead">{{ 'حل متكامل لإدارة الحضور والموظفين عبر الإنترنت' if lang == 'ar' else 'A complete solution for online attendance and employee management.' }}</p>
+        <a href="/login" class="btn bg-theme btn-lg mt-3">{{ 'ابدأ الآن' if lang == 'ar' else 'Get Started' }}</a>
+    </div>
+</div>
+{% endblock %}

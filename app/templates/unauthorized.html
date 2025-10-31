@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'غير مصرح' if lang == 'ar' else 'Unauthorized' }}{% endblock %}
+{% block content %}
+<div class="alert alert-danger mt-5 text-center">
+    {{ 'غير مصرح لك بالدخول لهذه الصفحة' if lang == 'ar' else 'You are not authorized to access this page.' }}
+</div>
+{% endblock %}

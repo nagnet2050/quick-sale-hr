@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'تعديل تقييم' if lang == 'ar' else 'Edit Performance' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-8">
+        <h2 class="theme-color">{{ 'تعديل تقييم الموظف' if lang == 'ar' else 'Edit Employee Evaluation' }}</h2>
+        <form method="POST">
+            {{ csrf_token() }}
+            <div class="mb-3">
+                <label class="form-label">{{ 'الموظف' if lang == 'ar' else 'Employee' }}</label>
+                <select name="employee_id" class="form-select">
+                    {% for emp in employees %}
+                    <option value="{{ emp.id }}" {% if emp.id==perf.employee_id %}selected{% endif %}>{{ emp.name }} ({{ emp.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ 'تاريخ التقييم' if lang == 'ar' else 'Review Date' }}</label>
+                <input type="date" name="review_date" value="{{ perf.review_date }}" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ 'الدرجة' if lang == 'ar' else 'Score' }}</label>
+                <input type="number" name="score" min="0" max="100" value="{{ perf.score }}" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ 'ملاحظات' if lang == 'ar' else 'Notes' }}</label>
+                <textarea name="notes" class="form-control">{{ perf.notes }}</textarea>
+            </div>
+            <button class="btn bg-theme" type="submit">{{ 'حفظ' if lang == 'ar' else 'Save' }}</button>
+            <a href="/performance" class="btn btn-secondary">{{ 'إلغاء' if lang == 'ar' else 'Cancel' }}</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

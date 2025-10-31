@@ -1,0 +1,5 @@
+body.rtl { direction: rtl; }
+body.ltr { direction: ltr; }
+.theme-color { color: #0D6EFD; }
+.bg-theme { background-color: #0D6EFD !important; }
+.logo { height: 48px; }

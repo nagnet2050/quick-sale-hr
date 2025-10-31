@@ -1,0 +1,23 @@
+{
+  "login": "Login",
+  "username": "Username",
+  "password": "Password",
+  "dashboard": "Dashboard",
+  "employees": "Employees",
+  "attendance": "Attendance",
+  "settings": "Settings",
+  "logout": "Logout",
+  "search": "Search",
+  "save": "Save",
+  "active": "Active",
+  "not_active": "Inactive",
+  "checkin": "Check-in",
+  "checkout": "Check-out",
+  "company_lat": "Company Latitude",
+  "company_lng": "Company Longitude",
+  "work_start": "Work Start",
+  "work_end": "Work End",
+  "presence_interval_min": "Presence Interval (min)",
+  "presence_grace_min": "Presence Grace (min)",
+  "presence_sound_enabled": "Enable Presence Sound"
+}

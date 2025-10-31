@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'العقود' if lang == 'ar' else 'Contracts' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-3">
+        <h2 class="theme-color">{{ 'إدارة العقود' if lang == 'ar' else 'Contract Management' }}</h2>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>{{ 'الموظف' if lang == 'ar' else 'Employee' }}</th>
+                    <th>{{ 'نوع العقد' if lang == 'ar' else 'Contract Type' }}</th>
+                    <th>{{ 'تاريخ البداية' if lang == 'ar' else 'Start Date' }}</th>
+                    <th>{{ 'تاريخ النهاية' if lang == 'ar' else 'End Date' }}</th>
+                    <th>{{ 'تفاصيل' if lang == 'ar' else 'Details' }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Contract data here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

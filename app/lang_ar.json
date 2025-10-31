@@ -1,0 +1,23 @@
+{
+  "login": "تسجيل الدخول",
+  "username": "اسم المستخدم",
+  "password": "كلمة المرور",
+  "dashboard": "لوحة التحكم",
+  "employees": "الموظفين",
+  "attendance": "الحضور",
+  "settings": "الإعدادات",
+  "logout": "خروج",
+  "search": "بحث",
+  "save": "حفظ",
+  "active": "نشط",
+  "not_active": "غير نشط",
+  "checkin": "تسجيل دخول",
+  "checkout": "تسجيل خروج",
+  "company_lat": "خط العرض للشركة",
+  "company_lng": "خط الطول للشركة",
+  "work_start": "بداية الدوام",
+  "work_end": "نهاية الدوام",
+  "presence_interval_min": "فاصل التنبيه (دقائق)",
+  "presence_grace_min": "مهلة التنبيه (دقائق)",
+  "presence_sound_enabled": "تفعيل صوت التنبيه"
+}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'تسجيل الدخول' if lang == 'ar' else 'Login' }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="mb-4 theme-color text-center">{{ 'تسجيل الدخول' if lang == 'ar' else 'Login' }}</h3>
+                <form method="POST" action="/login">
+                    {{ form.csrf_token }}
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control") }}
+                    </div>
+                    {{ form.submit(class="btn bg-theme w-100") }}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

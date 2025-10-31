@@ -1,0 +1,87 @@
+
+{% extends 'base.html' %}
+{% block title %}{{ 'لوحة الإدارة' if lang == 'ar' else 'Admin Dashboard' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2 class="theme-color fw-bold text-center">{{ 'لوحة الإدارة' if lang == 'ar' else 'Admin Dashboard' }}</h2>
+    </div>
+    <!-- Cards Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <span class="fs-1 text-primary"><i class="bi bi-people"></i></span>
+                    <h6 class="mt-2">{{ 'عدد الموظفين' if lang == 'ar' else 'Employees' }}</h6>
+                    <div class="display-6 fw-bold">{{ employees_count or 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <span class="fs-1 text-success"><i class="bi bi-cash-stack"></i></span>
+                    <h6 class="mt-2">{{ 'إجمالي الرواتب' if lang == 'ar' else 'Total Payroll' }}</h6>
+                    <div class="display-6 fw-bold">{{ total_payroll or 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <span class="fs-1 text-warning"><i class="bi bi-calendar-check"></i></span>
+                    <h6 class="mt-2">{{ 'الحضور اليوم' if lang == 'ar' else "Today's Attendance" }}</h6>
+                    <div class="display-6 fw-bold">{{ attendance_today or 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <span class="fs-1 text-info"><i class="bi bi-envelope"></i></span>
+                    <h6 class="mt-2">{{ 'طلبات الدعم' if lang == 'ar' else 'Support Tickets' }}</h6>
+                    <div class="display-6 fw-bold">{{ support_count or 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Navigation Buttons -->
+    <div class="row g-2">
+        <div class="col-md-2 col-6 mb-2">
+            <a href="/employees" class="btn btn-lg btn-block bg-theme w-100"><i class="bi bi-people"></i> {{ 'الموظفين' if lang == 'ar' else 'Employees' }}</a>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <a href="/attendance" class="btn btn-lg btn-block btn-outline-primary w-100"><i class="bi bi-calendar-check"></i> {{ 'الحضور' if lang == 'ar' else 'Attendance' }}</a>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <a href="/payroll" class="btn btn-lg btn-block btn-outline-success w-100"><i class="bi bi-cash-stack"></i> {{ 'الرواتب' if lang == 'ar' else 'Payroll' }}</a>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <a href="/leave" class="btn btn-lg btn-block btn-outline-warning w-100"><i class="bi bi-calendar"></i> {{ 'الإجازات' if lang == 'ar' else 'Leaves' }}</a>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <a href="/performance" class="btn btn-lg btn-block btn-outline-info w-100"><i class="bi bi-bar-chart"></i> {{ 'الأداء' if lang == 'ar' else 'Performance' }}</a>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <a href="/reports" class="btn btn-lg btn-block btn-outline-dark w-100"><i class="bi bi-file-earmark-text"></i> {{ 'التقارير' if lang == 'ar' else 'Reports' }}</a>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <a href="/admin/audit" class="btn btn-lg btn-block btn-outline-secondary w-100"><i class="bi bi-shield-check"></i> {{ 'سجل التدقيق' if lang == 'ar' else 'Audit Log' }}</a>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <a href="/settings" class="btn btn-lg btn-block btn-outline-secondary w-100"><i class="bi bi-gear"></i> {{ 'الإعدادات' if lang == 'ar' else 'Settings' }}</a>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <a href="/support" class="btn btn-lg btn-block btn-outline-secondary w-100"><i class="bi bi-envelope"></i> {{ 'الدعم الفني' if lang == 'ar' else 'Support' }}</a>
+        </div>
+    </div>
+</div>
+<!-- إشعارات للمدير -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info text-center" role="alert">
+            <i class="bi bi-info-circle"></i> {{ 'مرحباً بك في لوحة الإدارة! يمكنك متابعة جميع العمليات من هنا.' if lang == 'ar' else 'Welcome to the admin dashboard! You can monitor all operations here.' }}
+        </div>
+    </div>
+</div>
+{% endblock %}

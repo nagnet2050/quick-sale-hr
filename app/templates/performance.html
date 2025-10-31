@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'تقييم الأداء' if lang == 'ar' else 'Performance' }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-3">
+        <h2 class="theme-color">{{ 'تقييم الأداء الوظيفي' if lang == 'ar' else 'Performance Evaluation' }}</h2>
+        <!-- Form to add new performance evaluation -->
+        <form method="POST" class="row g-3 mb-4">
+            {{ csrf_token() }}
+            <div class="col-md-4">
+                <label class="form-label">{{ 'الموظف' if lang == 'ar' else 'Employee' }}</label>
+                <select name="employee_id" class="form-select">
+                    {% for emp in employees %}
+                    <option value="{{ emp.id }}">{{ emp.name }} ({{ emp.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">{{ 'تاريخ التقييم' if lang == 'ar' else 'Review Date' }}</label>
+                <input type="date" name="review_date" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">{{ 'الدرجة' if lang == 'ar' else 'Score' }}</label>
+                <input type="number" name="score" min="0" max="100" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">{{ 'ملاحظات' if lang == 'ar' else 'Notes' }}</label>
+                <input type="text" name="notes" class="form-control">
+            </div>
+            <div class="col-md-1 align-self-end">
+                <button class="btn bg-theme w-100" type="submit">{{ 'إضافة' if lang == 'ar' else 'Add' }}</button>
+            </div>
+        </form>
+
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>{{ 'الموظف' if lang == 'ar' else 'Employee' }}</th>
+                    <th>{{ 'تاريخ التقييم' if lang == 'ar' else 'Review Date' }}</th>
+                    <th>{{ 'الدرجة' if lang == 'ar' else 'Score' }}</th>
+                    <th>{{ 'ملاحظات' if lang == 'ar' else 'Notes' }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in performance_data %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ p.employee_name }}</td>
+                    <td>{{ p.review_date }}</td>
+                    <td>{{ p.score }}</td>
+                    <td>{{ p.notes }}</td>
+                    <td>
+                        {% if current_user.is_authenticated and current_user.role in ['admin','manager'] %}
+                        <form method="POST" action="/performance/delete/{{ p.id }}" style="display:inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا التقييم؟');">
+                            <button type="submit" class="btn btn-sm btn-danger">{{ 'حذف' if lang=='ar' else 'Delete' }}</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
