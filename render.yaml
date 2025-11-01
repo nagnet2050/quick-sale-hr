@@ -8,12 +8,14 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: FLASK_APP=run.py flask db upgrade && gunicorn run:app --bind 0.0.0.0:$PORT
     runtime:
-      pythonVersion: 3.13
+      pythonVersion: 3.12
     envVars:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        fromDatabase: quick-sale-hr-db
+        fromDatabase:
+          name: quick-sale-hr-db
+          property: connectionString
       - key: FLASK_APP
         value: run.py
       - key: PYTHONUNBUFFERED

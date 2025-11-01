@@ -1,5 +1,13 @@
 import os
 
+def _normalize_db_uri(uri: str) -> str:
+    """Normalize DATABASE_URL for SQLAlchemy.
+    Render/Heroku may provide 'postgres://', while SQLAlchemy prefers 'postgresql://'.
+    """
+    if uri and uri.startswith('postgres://'):
+        return uri.replace('postgres://', 'postgresql://', 1)
+    return uri
+
 def _engine_options_for(uri: str):
     """Return safe SQLAlchemy engine options based on DB driver.
     Avoid passing SQLite-specific connect_args to other drivers (e.g., psycopg2).
@@ -18,7 +26,8 @@ def _engine_options_for(uri: str):
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production-12345678'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///hrcloud.db')
+    _RAW_DB_URL = os.environ.get('DATABASE_URL', 'sqlite:///hrcloud.db')
+    SQLALCHEMY_DATABASE_URI = _normalize_db_uri(_RAW_DB_URL)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = _engine_options_for(SQLALCHEMY_DATABASE_URI)
     WTF_CSRF_ENABLED = True
