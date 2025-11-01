@@ -1,18 +1,26 @@
 import os
 
+def _engine_options_for(uri: str):
+    """Return safe SQLAlchemy engine options based on DB driver.
+    Avoid passing SQLite-specific connect_args to other drivers (e.g., psycopg2).
+    """
+    base = {
+        'pool_size': 10,
+        'pool_recycle': 3600,
+        'pool_pre_ping': True,
+    }
+    if uri.startswith('sqlite'):
+        base['connect_args'] = {
+            'check_same_thread': False,
+            'timeout': 30,
+        }
+    return base
+
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production-12345678'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///hrcloud.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,
-        'pool_recycle': 3600,
-        'pool_pre_ping': True,
-        'connect_args': {
-            'check_same_thread': False,
-            'timeout': 30
-        }
-    }
+    SQLALCHEMY_ENGINE_OPTIONS = _engine_options_for(SQLALCHEMY_DATABASE_URI)
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None
     WTF_CSRF_CHECK_DEFAULT = False  # Don't check CSRF on all requests by default

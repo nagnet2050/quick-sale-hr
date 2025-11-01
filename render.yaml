@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: quick-sale-hr
+    env: python
+    plan: free
+    region: oregon
+    autoDeploy: true
+    buildCommand: pip install -r requirements.txt
+    startCommand: FLASK_APP=run.py flask db upgrade && gunicorn run:app --bind 0.0.0.0:$PORT
+    runtime:
+      pythonVersion: 3.13
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase: quick-sale-hr-db
+      - key: FLASK_APP
+        value: run.py
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: EMAIL_PROVIDER
+        value: SMTP
+
+databases:
+  - name: quick-sale-hr-db
+    plan: free
+    region: oregon
