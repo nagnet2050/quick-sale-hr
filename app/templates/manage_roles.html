@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ 'إدارة الأدوار والصلاحيات' if lang == 'ar' else 'Roles & Permissions Management' }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="theme-color">
+                <i class="fas fa-shield-alt"></i>
+                {{ 'إدارة الأدوار والصلاحيات' if lang == 'ar' else 'Roles & Permissions Management' }}
+            </h2>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#rolesTab">
+                <i class="fas fa-users-cog"></i>
+                {{ 'الأدوار' if lang == 'ar' else 'Roles' }}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#permissionsTab">
+                <i class="fas fa-key"></i>
+                {{ 'الصلاحيات' if lang == 'ar' else 'Permissions' }}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#userRolesTab">
+                <i class="fas fa-user-tag"></i>
+                {{ 'أدوار المستخدمين' if lang == 'ar' else 'User Roles' }}
+            </a>
+        </li>
+    </ul>
+
+    <!-- Lightweight page-specific compact styling -->
+    <style>
+        /* Compact tables and cards for a modern, denser layout */
+        .card .card-body { padding: 0.75rem 0.75rem; }
+        .card .card-header { padding: 0.5rem 0.75rem; }
+        table.table th, table.table td { padding: 0.4rem 0.6rem; vertical-align: middle; }
+        .chip { cursor: pointer; }
+        .chip.active { opacity: 1; }
+        .chip.inactive { opacity: 0.6; }
+        .chips-scroll { overflow-x: auto; white-space: nowrap; }
+    </style>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- Roles Tab -->
+        <div class="tab-pane fade show active" id="rolesTab">
+            <div class="card">
+                <div class="card-header bg-theme text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ 'قائمة الأدوار' if lang == 'ar' else 'Roles List' }}</h5>
+                    <button class="btn btn-light btn-sm" onclick="openRoleModal()">
+                        <i class="fas fa-plus"></i>
+                        {{ 'إضافة دور جديد' if lang == 'ar' else 'Add New Role' }}
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>{{ 'الاسم' if lang == 'ar' else 'Name' }}</th>
+                                    <th>{{ 'الاسم بالعربية' if lang == 'ar' else 'Arabic Name' }}</th>
+                                    <th>{{ 'الوصف' if lang == 'ar' else 'Description' }}</th>
+                                    <th>{{ 'عدد الصلاحيات' if lang == 'ar' else 'Permissions Count' }}</th>
+                                    <th>{{ 'الحالة' if lang == 'ar' else 'Status' }}</th>
+                                    <th>{{ 'الإجراءات' if lang == 'ar' else 'Actions' }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rolesTableBody">
+                                <tr>
+                                    <td colspan="6" class="text-center">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        {{ 'جاري التحميل...' if lang == 'ar' else 'Loading...' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissions Tab -->
+        <div class="tab-pane fade" id="permissionsTab">
+            <div class="card">
+                <div class="card-header bg-theme text-white">
+                    <h5 class="mb-0">{{ 'قائمة الصلاحيات' if lang == 'ar' else 'Permissions List' }}</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Filters: Module chips + text search -->
+                    <div class="row g-2 mb-3 align-items-center">
+                        <div class="col-12 col-lg-8">
+                            <div class="chips-scroll py-1" id="moduleChips">
+                                <!-- chips rendered by JS -->
+                            </div>
+                        </div>
+                        <div class="col-8 col-lg-3">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="searchPermissions"
+                                    placeholder="{{ 'ابحث بالعملية أو الاسم' if lang == 'ar' else 'Search by action or name' }}">
+                            </div>
+                        </div>
+                        <div class="col-4 col-lg-1 text-end">
+                            <button class="btn btn-outline-secondary btn-sm w-100" id="resetPermFilters" type="button">
+                                {{ 'تفريغ' if lang == 'ar' else 'Reset' }}
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Fallback single-select (optional) -->
+                    <div class="row mb-2 d-none">
+                        <div class="col-md-4">
+                            <select class="form-control form-select form-select-sm" id="filterModule" onchange="filterPermissions()">
+                                <option value="">{{ 'كل الموديولات' if lang == 'ar' else 'All Modules' }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>{{ 'الموديول' if lang == 'ar' else 'Module' }}</th>
+                                    <th>{{ 'العملية' if lang == 'ar' else 'Action' }}</th>
+                                    <th>{{ 'الاسم بالعربية' if lang == 'ar' else 'Arabic Name' }}</th>
+                                    <th>{{ 'الاسم بالإنجليزية' if lang == 'ar' else 'English Name' }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="permissionsTableBody">
+                                <tr>
+                                    <td colspan="4" class="text-center">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        {{ 'جاري التحميل...' if lang == 'ar' else 'Loading...' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Roles Tab -->
+        <div class="tab-pane fade" id="userRolesTab">
+            <div class="card">
+                <div class="card-header bg-theme text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ 'أدوار المستخدمين' if lang == 'ar' else 'User Roles' }}</h5>
+                    <button class="btn btn-light btn-sm" onclick="openAssignRoleModal()">
+                        <i class="fas fa-user-plus"></i>
+                        {{ 'تعيين دور' if lang == 'ar' else 'Assign Role' }}
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Search Box -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="searchUserRoles" 
+                                       placeholder="{{ 'بحث عن مستخدم...' if lang == 'ar' else 'Search users...' }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>{{ 'المستخدم' if lang == 'ar' else 'User' }}</th>
+                                    <th>{{ 'الأدوار' if lang == 'ar' else 'Roles' }}</th>
+                                    <th>{{ 'الدور الأساسي' if lang == 'ar' else 'Primary Role' }}</th>
+                                    <th>{{ 'الإجراءات' if lang == 'ar' else 'Actions' }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userRolesTableBody">
+                                <tr>
+                                    <td colspan="4" class="text-center">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        {{ 'جاري التحميل...' if lang == 'ar' else 'Loading...' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div id="userRolesPagination" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add/Edit Role -->
+<div class="modal fade" id="roleModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-theme text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-users-cog"></i>
+                    <span id="roleModalTitle">{{ 'إضافة دور جديد' if lang == 'ar' else 'Add New Role' }}</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="roleForm">
+                    <input type="hidden" id="roleId">
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ 'اسم الدور (English)' if lang == 'ar' else 'Role Name (English)' }}</label>
+                            <input type="text" class="form-control" id="roleName" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ 'الاسم بالعربية' if lang == 'ar' else 'Arabic Name' }}</label>
+                            <input type="text" class="form-control" id="roleNameAr" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ 'الاسم بالإنجليزية' if lang == 'ar' else 'English Name' }}</label>
+                            <input type="text" class="form-control" id="roleNameEn" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ 'الوصف' if lang == 'ar' else 'Description' }}</label>
+                        <textarea class="form-control" id="roleDescription" rows="2"></textarea>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="roleIsActive" checked>
+                        <label class="form-check-label" for="roleIsActive">
+                            {{ 'نشط' if lang == 'ar' else 'Active' }}
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>{{ 'الصلاحيات' if lang == 'ar' else 'Permissions' }}</h6>
+                        <div id="permissionsCheckboxes" class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                            <i class="fas fa-spinner fa-spin"></i> {{ 'جاري التحميل...' if lang == 'ar' else 'Loading...' }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i>
+                    {{ 'إلغاء' if lang == 'ar' else 'Cancel' }}
+                </button>
+                <button type="button" class="btn bg-theme" onclick="saveRole()">
+                    <i class="fas fa-save"></i>
+                    {{ 'حفظ' if lang == 'ar' else 'Save' }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Assign Role -->
+<div class="modal fade" id="assignRoleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-theme text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-tag"></i>
+                    {{ 'تعيين دور لمستخدم' if lang == 'ar' else 'Assign Role to User' }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignRoleForm">
+                    <div class="mb-3">
+                        <label class="form-label">{{ 'المستخدم' if lang == 'ar' else 'User' }}</label>
+                        <select class="form-control form-select" id="assignUserId" required>
+                            <option value="">{{ 'اختر مستخدم...' if lang == 'ar' else 'Select User...' }}</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ 'الدور' if lang == 'ar' else 'Role' }}</label>
+                        <select class="form-control form-select" id="assignRoleId" required>
+                            <option value="">{{ 'اختر دور...' if lang == 'ar' else 'Select Role...' }}</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="assignPrimary">
+                        <label class="form-check-label" for="assignPrimary">
+                            {{ 'جعله الدور الأساسي' if lang == 'ar' else 'Make Primary Role' }}
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i>
+                    {{ 'إلغاء' if lang == 'ar' else 'Cancel' }}
+                </button>
+                <button type="button" class="btn bg-theme" onclick="assignRole()">
+                    <i class="fas fa-check"></i>
+                    {{ 'تعيين' if lang == 'ar' else 'Assign' }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/permissions_management.js"></script>
+{% endblock %}

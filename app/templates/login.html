@@ -1,25 +1,444 @@
 {% extends 'base.html' %}
 {% block title %}{{ 'تسجيل الدخول' if lang == 'ar' else 'Login' }}{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-4">
-        <div class="card shadow">
-            <div class="card-body">
-                <h3 class="mb-4 theme-color text-center">{{ 'تسجيل الدخول' if lang == 'ar' else 'Login' }}</h3>
-                <form method="POST" action="/login">
-                    {{ form.csrf_token }}
-                    <div class="mb-3">
-                        {{ form.username.label(class="form-label") }}
-                        {{ form.username(class="form-control") }}
+<style>
+    /* خلفية متدرجة مع فقاعات متحركة */
+    .login-hero { position: relative; padding: 40px 0 80px; background: linear-gradient(135deg, #0d6efd 0%, #6f42c1 60%, #20c997 100%); border-radius: 18px; overflow: hidden; }
+    .bubble { position: absolute; border-radius: 50%; filter: blur(1px); opacity: 0.2; animation: float 12s infinite ease-in-out; }
+    .bubble.b1 { width: 220px; height: 220px; background: #fff; top: -60px; left: -60px; animation-delay: 0s; }
+    .bubble.b2 { width: 160px; height: 160px; background: #fff; bottom: -40px; right: -40px; animation-delay: 2s; }
+    .bubble.b3 { width: 120px; height: 120px; background: #fff; top: 20%; right: 10%; animation-delay: 4s; }
+    @keyframes float { 0%,100%{transform: translateY(0)} 50%{transform: translateY(-18px)} }
+    /* بطاقة زجاجية */
+    .glass-card { background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.25); border-radius: 16px; }
+    .login-title { color: #fff; }
+    .toggle-seg { background: rgba(255,255,255,0.15); border-radius: 10px; padding: 6px; display: inline-flex; }
+    .toggle-seg .btn { color: #fff; }
+    .toggle-seg .btn.active { background: #fff; color: #0d6efd; border-radius: 8px; }
+    .form-label, .form-text, .placeholder-text { color: #fff; opacity: 0.95; }
+    .form-control, .form-select { background: rgba(255,255,255,0.85); border: none; }
+    .form-control:focus, .form-select:focus { box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25); }
+    .btn-login { background: linear-gradient(90deg,#0d6efd,#20c997); border: none; }
+    .btn-login:hover { opacity: .95; }
+    .small-link { color:#fff; opacity:.9; text-decoration: underline; cursor:pointer }
+    .input-group-text { background: rgba(255,255,255,.85); border: none; }
+    /* Improve modal inputs visibility */
+    .modal-content .form-control { background: #fff; border: 1px solid rgba(0,0,0,.15); }
+    .modal-content .form-control:focus { box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25); }
+    @media (max-width: 768px){ .login-hero{ padding: 24px 0 48px } }
+    /* OTP code circular inputs */
+    .code-input-group { display:flex; gap:8px; justify-content:center; align-items:center; margin-top:6px; margin-bottom:10px; }
+    .code-input { width:44px; height:44px; border-radius:50%; text-align:center; font-size:20px; font-weight:600; background: rgba(255,255,255,0.95); border: none; outline: none; box-shadow: 0 0 0 0.2rem rgba(13,110,253,.15); }
+    .code-input:focus { box-shadow: 0 0 0 0.25rem rgba(13,110,253,.35); }
+</style>
+
+<div class="login-hero mb-4">
+    <span class="bubble b1"></span>
+    <span class="bubble b2"></span>
+    <span class="bubble b3"></span>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-5 col-md-7 col-sm-10">
+            <div class="glass-card shadow-lg p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="login-title mb-0">{{ 'تسجيل الدخول' if lang == 'ar' else 'Welcome Back' }}</h3>
+                    <div class="toggle-seg" role="group" aria-label="Toggle user type">
+                        <button type="button" class="btn btn-sm active" id="tabAdmin" onclick="filterUsers('admin')">{{ 'مدير' if lang=='ar' else 'Admin' }}</button>
+                        <button type="button" class="btn btn-sm" id="tabEmployee" onclick="filterUsers('employee')">{{ 'موظف' if lang=='ar' else 'Employee' }}</button>
                     </div>
+                </div>
+
+                <form method="POST" action="/login" id="loginForm">
                     <div class="mb-3">
-                        {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control") }}
+                        <label for="user_select" class="form-label">{{ 'اختر المستخدم' if lang == 'ar' else 'Select User' }}</label>
+                        <select class="form-control form-select" id="user_select" name="user_select" required>
+                            <option value="">{{ 'اختر مستخدم...' if lang == 'ar' else 'Select a user...' }}</option>
+                            <optgroup id="opt_admins" label="{{ 'المديرين' if lang == 'ar' else 'Administrators' }}">
+                                {% for admin in admins %}
+                                <option value="admin_{{ admin.id }}" data-type="admin">{{ admin.display_name if admin.display_name else (admin.username ~ ' - مدير') }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup id="opt_emps" label="{{ 'الموظفين' if lang == 'ar' else 'Employees' }}">
+                                {% for employee in employees %}
+                                <option value="employee_{{ employee.id }}" data-type="employee">{{ employee.full_name or employee.name }} ({{ employee.code }})</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
                     </div>
-                    {{ form.submit(class="btn bg-theme w-100") }}
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">{{ 'كلمة المرور' if lang == 'ar' else 'Password' }}</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">{{ 'إظهار' if lang=='ar' else 'Show' }}</button>
+                        </div>
+                    </div>
+
+                                <div class="mb-2">
+                                    <label class="d-inline-flex align-items-center gap-2 m-0">
+                                        {% if lang=='ar' %}
+                                            <span>تذكرني</span>
+                                            <input class="form-check-input" type="checkbox" value="1" id="remember" name="remember">
+                                        {% else %}
+                                            <input class="form-check-input" type="checkbox" value="1" id="remember" name="remember">
+                                            <span>Remember me</span>
+                                        {% endif %}
+                                    </label>
+                                </div>
+
+                    <input type="hidden" id="user_id" name="user_id">
+                    <input type="hidden" id="user_type" name="user_type">
+
+                    <button type="submit" class="btn btn-login btn-primary w-100 mt-2">
+                        {{ 'دخول' if lang == 'ar' else 'Login' }}
+                    </button>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <span class="small-link" data-bs-toggle="modal" data-bs-target="#forgotModal">{{ 'نسيت كلمة المرور؟' if lang=='ar' else 'Forgot password?' }}</span>
+                                    <span class="small-link" data-bs-toggle="modal" data-bs-target="#firstTimeModal">{{ 'تسجيل موظف لأول مرة' if lang=='ar' else 'First-time employee registration' }}</span>
+                                </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+            <!-- Modal: Forgot Password (email + code steps) -->
+            <div class="modal fade" id="forgotModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered" style="max-width: 430px;">
+                    <div class="modal-content">
+                        <div class="modal-header bg-theme text-white">
+                            <h5 class="modal-title">{{ 'إعادة تعيين كلمة المرور' if lang=='ar' else 'Reset Password' }}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="forgotForm" onsubmit="event.preventDefault();">
+                                <div id="fp_step1">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="fp_email">{{ 'البريد الإلكتروني المسجل' if lang=='ar' else 'Registered Email' }}</label>
+                                        <input type="email" class="form-control" id="fp_email" placeholder="email@company.com" required>
+                                        <div class="form-text">
+                                            {{ 'سيُرسل الرمز إلى البريد المسجَّل في بطاقة الموظف داخل النظام. صلاحية الرمز 10 دقائق.' if lang=='ar' else 'The code is sent to the email saved in the employee profile in this system. The code is valid for 10 minutes.' }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="fp_step2" style="display:none;">
+                                    <div class="mb-2 small text-white-50" id="fp_info"></div>
+                                    <div class="mb-2">
+                                        <label class="form-label" for="fp_code_0">{{ 'رمز التحقق' if lang=='ar' else 'Verification Code' }}</label>
+                                        <div id="fp_code_group" class="code-input-group" dir="ltr">
+                                            <input type="text" inputmode="numeric" pattern="[0-9]*" class="code-input" id="fp_code_0" data-index="0" maxlength="1">
+                                            <input type="text" inputmode="numeric" pattern="[0-9]*" class="code-input" id="fp_code_1" data-index="1" maxlength="1">
+                                            <input type="text" inputmode="numeric" pattern="[0-9]*" class="code-input" id="fp_code_2" data-index="2" maxlength="1">
+                                            <input type="text" inputmode="numeric" pattern="[0-9]*" class="code-input" id="fp_code_3" data-index="3" maxlength="1">
+                                            <input type="text" inputmode="numeric" pattern="[0-9]*" class="code-input" id="fp_code_4" data-index="4" maxlength="1">
+                                            <input type="text" inputmode="numeric" pattern="[0-9]*" class="code-input" id="fp_code_5" data-index="5" maxlength="1">
+                                        </div>
+                                    </div>
+                                    <div id="fp_pw_section" style="display:none;">
+                                        <div class="mb-3">
+                                            <label class="form-label" for="fp_newpass">{{ 'كلمة المرور الجديدة' if lang=='ar' else 'New Password' }}</label>
+                                            <input type="password" class="form-control" id="fp_newpass">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label" for="fp_newpass2">{{ 'تأكيد كلمة المرور' if lang=='ar' else 'Confirm Password' }}</label>
+                                            <input type="password" class="form-control" id="fp_newpass2">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <button type="button" class="btn btn-link p-0 text-white-75" id="fp_resend" onclick="fpResend()" disabled>{{ 'إعادة إرسال الرمز' if lang=='ar' else 'Resend code' }} (<span id="fp_timer">60</span>s)</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">{{ 'إلغاء' if lang=='ar' else 'Cancel' }}</button>
+                            <button id="fp_btn_send" class="btn bg-theme" onclick="fpSendCode()">{{ 'إرسال الرمز' if lang=='ar' else 'Send Code' }}</button>
+                            <button id="fp_btn_verify" style="display:none;" class="btn bg-theme" onclick="fpVerify()">{{ 'تأكيد وتعيين كلمة المرور' if lang=='ar' else 'Verify & Reset' }}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Modal: First-time Employee Registration -->
+            <div class="modal fade" id="firstTimeModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered" style="max-width: 560px;">
+                    <div class="modal-content">
+                        <div class="modal-header bg-theme text-white">
+                            <h5 class="modal-title">{{ 'تسجيل موظف لأول مرة' if lang=='ar' else 'Register Employee (First Time)' }}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="firstRegForm" onsubmit="event.preventDefault(); submitFirstReg();">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ 'الاسم' if lang=='ar' else 'Name' }} *</label>
+                                        <input type="text" class="form-control" id="fr_name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ 'المسمى الوظيفي' if lang=='ar' else 'Job Title' }}</label>
+                                        <input type="text" class="form-control" id="fr_job_title" placeholder="{{ 'مثال: مندوب مبيعات' if lang=='ar' else 'e.g., Sales Rep' }}">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">{{ 'العنوان' if lang=='ar' else 'Address' }}</label>
+                                        <input type="text" class="form-control" id="fr_address" placeholder="{{ 'المدينة، الشارع...' if lang=='ar' else 'City, Street...' }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ 'رقم الهاتف' if lang=='ar' else 'Phone' }}</label>
+                                        <input type="text" class="form-control" id="fr_phone" placeholder="05xxxxxxxx">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ 'البريد الإلكتروني' if lang=='ar' else 'Email' }}</label>
+                                        <input type="email" class="form-control" id="fr_email" placeholder="email@company.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ 'القسم' if lang=='ar' else 'Department' }} *</label>
+                                        <select class="form-select" id="fr_department" required>
+                                            <option value="">{{ 'اختر القسم' if lang=='ar' else 'Select department' }}</option>
+                                            {% for dep in reg_departments %}
+                                                <option value="{{ dep.key }}">{{ dep.name_ar if lang=='ar' else dep.name_en }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-text mt-4">
+                                            {{ 'سيتم توليد كود الموظف تلقائياً. يمكنك تعيين كلمة مرور لاحقاً من (نسيت كلمة المرور).' if lang=='ar' else 'An employee code will be generated automatically. You can set a password later from “Forgot password”.' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'إلغاء' if lang=='ar' else 'Cancel' }}</button>
+                            <button type="button" class="btn bg-theme" onclick="submitFirstReg()">{{ 'تسجيل' if lang=='ar' else 'Register' }}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+<script>
+    // تعبئة الحقول المخفية من قيمة select
+    const userSelect = document.getElementById('user_select');
+    function syncHiddenFields() {
+        const value = userSelect.value || '';
+        if (value) {
+            const [type, id] = value.split('_');
+            document.getElementById('user_id').value = id || '';
+            document.getElementById('user_type').value = type || '';
+        } else {
+            document.getElementById('user_id').value = '';
+            document.getElementById('user_type').value = '';
+        }
+    }
+    userSelect.addEventListener('change', syncHiddenFields);
+
+    // فلترة القائمتين حسب النوع
+    function filterUsers(type){
+        const adminGroup = document.getElementById('opt_admins');
+        const empGroup = document.getElementById('opt_emps');
+        const tabAdmin = document.getElementById('tabAdmin');
+        const tabEmployee = document.getElementById('tabEmployee');
+        // تبديل الحالة البصرية
+        if (type === 'admin') { tabAdmin.classList.add('active'); tabEmployee.classList.remove('active'); }
+        else { tabEmployee.classList.add('active'); tabAdmin.classList.remove('active'); }
+        // إظهار/إخفاء مجموعات الخيارات
+        if (type === 'admin') { adminGroup.style.display='block'; empGroup.style.display='none'; }
+        else { adminGroup.style.display='none'; empGroup.style.display='block'; }
+        // إعادة التحديد
+        userSelect.value = '';
+        syncHiddenFields();
+    }
+    // إظهار/إخفاء كلمة المرور
+    function togglePassword(){
+        const p = document.getElementById('password');
+        p.type = (p.type === 'password') ? 'text' : 'password';
+    }
+    // التهيئة الافتراضية: عرض المديرين أولاً
+    filterUsers('admin');
+
+        // Forgot Password (email + code)
+        const fpStep1 = document.getElementById('fp_step1');
+        const fpStep2 = document.getElementById('fp_step2');
+        const fpBtnSend = document.getElementById('fp_btn_send');
+        const fpBtnVerify = document.getElementById('fp_btn_verify');
+
+        function setupCodeInputs(){
+            const inputs = Array.from(document.querySelectorAll('#fp_code_group .code-input'));
+            const pwSection = document.getElementById('fp_pw_section');
+            const maybeTogglePw = ()=>{
+                const code = getOtpCode();
+                if(code.length === 6){
+                    pwSection.style.display = 'block';
+                    document.getElementById('fp_newpass').focus();
+                } else {
+                    pwSection.style.display = 'none';
+                }
+            };
+            inputs.forEach((inp, idx)=>{
+                inp.value='';
+                inp.addEventListener('input', ()=>{
+                    inp.value = (inp.value || '').replace(/\D/g,'').slice(0,1);
+                    if(inp.value && idx < inputs.length-1){ inputs[idx+1].focus(); inputs[idx+1].select?.(); }
+                    maybeTogglePw();
+                });
+                inp.addEventListener('keydown', (e)=>{
+                    if(e.key === 'Backspace' && !inp.value && idx>0){ inputs[idx-1].focus(); inputs[idx-1].value=''; e.preventDefault(); }
+                    if(e.key === 'ArrowLeft' && idx>0){ inputs[idx-1].focus(); e.preventDefault(); }
+                    if(e.key === 'ArrowRight' && idx<inputs.length-1){ inputs[idx+1].focus(); e.preventDefault(); }
+                });
+                if(idx===0){
+                    inp.addEventListener('paste', (e)=>{
+                        e.preventDefault();
+                        const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+                        const digits = text.replace(/\D/g,'').slice(0, inputs.length).split('');
+                        inputs.forEach((el,i)=>{ el.value = digits[i] || ''; });
+                        const next = digits.length>=inputs.length ? inputs[inputs.length-1] : inputs[digits.length] || inputs[0];
+                        next.focus(); next.select?.();
+                        maybeTogglePw();
+                    });
+                }
+            });
+            inputs[0]?.focus();
+            maybeTogglePw();
+        }
+
+        function getOtpCode(){
+            return Array.from(document.querySelectorAll('#fp_code_group .code-input')).map(i=>i.value||'').join('');
+        }
+
+        let fpCountdownId = null;
+        function fpStartCountdown(seconds){
+            const btn = document.getElementById('fp_resend');
+            const tm = document.getElementById('fp_timer');
+            btn.disabled = true;
+            let remaining = seconds;
+            tm.textContent = remaining;
+            if(fpCountdownId){ clearInterval(fpCountdownId); }
+            fpCountdownId = setInterval(()=>{
+                remaining -= 1;
+                tm.textContent = remaining;
+                if(remaining <= 0){
+                    clearInterval(fpCountdownId); fpCountdownId = null;
+                    btn.disabled = false; tm.textContent = '0';
+                }
+            }, 1000);
+        }
+
+        function maskEmail(email){
+            const [user, domain] = email.split('@');
+            const mu = user.length <= 2 ? user[0] + '*' : user[0] + '***' + user[user.length-1];
+            const parts = domain.split('.');
+            const md = parts[0].length <= 2 ? parts[0][0] + '*' : parts[0][0] + '***' + parts[0][parts[0].length-1];
+            const suffix = parts.slice(1).join('.');
+            return `${mu}@${md}.${suffix}`;
+        }
+
+                // Toast helper now provided globally via /static/js/toasts.js
+
+        async function fpSendCode(){
+            const email = (document.getElementById('fp_email').value || '').trim();
+            if(!email){ showToast('{{ "أدخل البريد الإلكتروني" if lang=="ar" else "Enter email" }}','warning'); return; }
+            try{
+                const res = await fetch('/forgot-password/request', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ email })
+                });
+                let data = {};
+                try { data = await res.json(); } catch(e) {}
+                // بغض النظر عن الاستجابة، ننتقل للخطوة التالية حفاظاً على الخصوصية
+                fpStep1.style.display='none';
+                fpStep2.style.display='block';
+                fpBtnSend.style.display='none';
+                fpBtnVerify.style.display='inline-block';
+                document.getElementById('fp_info').textContent = `{{ 'تم إرسال الرمز إلى' if lang=='ar' else 'Code sent to' }} ${maskEmail(email)}`;
+                fpStartCountdown(60);
+                setupCodeInputs();
+                if(data && data.debug_code){ showToast(`DEV code: ${data.debug_code}`, 'info'); }
+            }catch(e){ console.error(e); }
+        }
+
+        async function fpResend(){
+            // مجرد إعادة استدعاء نفس المسار؛ الخادم يطبق التبريد
+            await fpSendCode();
+        }
+
+        async function fpVerify(){
+            const email = (document.getElementById('fp_email').value || '').trim();
+            const code = getOtpCode();
+            const p1 = (document.getElementById('fp_newpass').value || '');
+            const p2 = (document.getElementById('fp_newpass2').value || '');
+            if(!code){ showToast('{{ "أدخل الرمز" if lang=="ar" else "Enter the code" }}','warning'); return; }
+            if(!p1 || p1.length < 4){ showToast('{{ "كلمة المرور قصيرة" if lang=="ar" else "Password too short" }}','warning'); return; }
+            if(p1 !== p2){ showToast('{{ "كلمتا المرور غير متطابقتين" if lang=="ar" else "Passwords do not match" }}','warning'); return; }
+            try{
+                const res = await fetch('/forgot-password/verify', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ email, code, new_password: p1 })
+                });
+                const data = await res.json();
+                if(data.success){
+                    showToast('{{ "تم تغيير كلمة المرور بنجاح" if lang=="ar" else "Password changed successfully" }}','success');
+                    bootstrap.Modal.getInstance(document.getElementById('forgotModal')).hide();
+                    // تنظيف
+                    document.getElementById('fp_email').value='';
+                    Array.from(document.querySelectorAll('#fp_code_group .code-input')).forEach(i=> i.value='');
+                    document.getElementById('fp_newpass').value='';
+                    document.getElementById('fp_newpass2').value='';
+                    // إعادة الخطوات للوضع الافتراضي
+                    fpStep2.style.display='none';
+                    fpBtnVerify.style.display='none';
+                    fpStep1.style.display='block';
+                    fpBtnSend.style.display='inline-block';
+                } else {
+                    showToast(data.message || 'Error','danger');
+                }
+            }catch(e){ console.error(e); showToast('Error','danger'); }
+        }
+
+        // Ensure step 1 (email) is always visible when opening the modal
+        document.getElementById('forgotModal').addEventListener('show.bs.modal', ()=>{
+            fpStep1.style.display='block';
+            fpStep2.style.display='none';
+            fpBtnSend.style.display='inline-block';
+            fpBtnVerify.style.display='none';
+            // clear all fields
+            document.getElementById('fp_email').value='';
+            Array.from(document.querySelectorAll('#fp_code_group .code-input')).forEach(i=> i.value='');
+            const pwSection = document.getElementById('fp_pw_section');
+            if(pwSection){ pwSection.style.display='none'; }
+            document.getElementById('fp_newpass').value='';
+            document.getElementById('fp_newpass2').value='';
+        });
+
+        // First-time registration submit
+        async function submitFirstReg(){
+            const name = (document.getElementById('fr_name').value||'').trim();
+            const address = (document.getElementById('fr_address').value||'').trim();
+            const phone = (document.getElementById('fr_phone').value||'').trim();
+            const job_title = (document.getElementById('fr_job_title').value||'').trim();
+            const department = (document.getElementById('fr_department').value||'').trim();
+            const email = (document.getElementById('fr_email').value||'').trim();
+            if(!name){ showToast('{{ "الاسم مطلوب" if lang=="ar" else "Name is required" }}','warning'); return; }
+            if(!phone && !email){ showToast('{{ "رقم الهاتف أو البريد مطلوب" if lang=="ar" else "Phone or email required" }}','warning'); return; }
+            if(!department){ showToast('{{ "القسم مطلوب" if lang=="ar" else "Department is required" }}','warning'); return; }
+            try{
+                const res = await fetch('/employee/register',{
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ name, address, phone, job_title, department, email })
+                });
+                const data = await res.json();
+                if(res.status === 409){
+                    showToast('{{ "هذا الموظف مسجل من قبل" if lang=="ar" else "Employee already registered" }}','warning');
+                    return;
+                }
+                if(data && data.success){
+                    showToast('{{ "تم التسجيل بنجاح. لإتمام الدخول، عيّن كلمة مرور من (نسيت كلمة المرور)." if lang=="ar" else "Registered successfully. To sign in, set a password via 'Forgot password'." }}','success');
+                    bootstrap.Modal.getInstance(document.getElementById('firstTimeModal')).hide();
+                } else {
+                    showToast((data && data.message) || 'Error','danger');
+                }
+            }catch(e){ console.error(e); showToast('Error','danger'); }
+        }
+</script>
 {% endblock %}

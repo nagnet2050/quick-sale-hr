@@ -4,17 +4,18 @@ from app.models.performance import Performance
 from app.models.employee import Employee
 from app.models.audit import Audit
 from app import db
+from app.permissions import has_permission
+from datetime import datetime, date
 
 performance_bp = Blueprint('performance', __name__)
 
 @performance_bp.route('/performance', methods=['GET', 'POST'])
 @login_required
 def performance():
-    from datetime import datetime, date
     employees = Employee.query.all()
     if request.method == 'POST':
         # Only allow admins and managers to add evaluations
-        if current_user.role not in ('admin', 'manager'):
+        if not has_permission(['admin', 'manager']):
             return render_template('unauthorized.html')
         employee_id = request.form.get('employee_id')
         review_date_str = request.form.get('review_date') or None
@@ -58,7 +59,7 @@ def performance():
 @login_required
 def delete_performance(perf_id):
     # Only admin/manager can delete
-    if current_user.role not in ('admin', 'manager'):
+    if not has_permission(['admin', 'manager']):
         return render_template('unauthorized.html')
     p = Performance.query.get(perf_id)
     if not p:
@@ -76,7 +77,7 @@ def delete_performance(perf_id):
 @login_required
 def edit_performance(perf_id):
     # Only admin/manager can edit
-    if current_user.role not in ('admin', 'manager'):
+    if not has_permission(['admin', 'manager']):
         return render_template('unauthorized.html')
     p = Performance.query.get(perf_id)
     if not p:

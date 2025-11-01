@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block title %}دردشة واتساب - {{ customer_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4>💬 دردشة واتساب مع {{ customer_name }}</h4>
+                <small>{{ customer_phone }}</small>
+            </div>
+            <div class="card-body">
+                <div class="whatsapp-chat-interface">
+                    <!-- رأس المحادثة -->
+                    <div class="chat-header">
+                        <div class="customer-info">
+                            <span class="customer-name">{{ customer_name }}</span>
+                            <span class="customer-phone">{{ customer_phone }}</span>
+                        </div>
+                        <div class="chat-actions">
+                            <button class="btn btn-outline-light btn-sm" onclick="makeAudioCall()">📞 مكالمة</button>
+                            <button class="btn btn-outline-light btn-sm" onclick="attachFile()">📎 إرفاق</button>
+                        </div>
+                    </div>
+
+                    <!-- منطقة الرسائل -->
+                    <div class="messages-container" id="messages-container">
+                        <!-- الرسائل ستظهر هنا -->
+                    </div>
+
+                    <!-- منطقة الكتابة والإرسال -->
+                    <div class="message-input-area">
+                        <div class="input-options">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="recordAudio()">🎤</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="takePhoto()">📷</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="attachFile()">📎</button>
+                        </div>
+
+                        <textarea
+                            id="message-input"
+                            class="form-control"
+                            placeholder="اكتب رسالتك هنا..."
+                            rows="2"
+                        ></textarea>
+
+                        <button class="btn btn-success send-button" onclick="sendMessage()">
+                            ↗ إرسال
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة المعاينة قبل الإرسال -->
+<div id="preview-modal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">معاينة قبل الإرسال</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="preview-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="confirmSend()">إرسال</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentCustomerPhone = '{{ customer_phone }}';
+
+// تحميل محادثة العميل
+function loadCustomerChat() {
+    fetch(`/api/whatsapp/conversation/${currentCustomerPhone}`)
+        .then(response => response.json())
+        .then(messages => {
+            displayMessages(messages);
+        })
+        .catch(error => console.error('Error loading chat:', error));
+}
+
+// عرض الرسائل
+function displayMessages(messages) {
+    const container = document.getElementById('messages-container');
+    container.innerHTML = '';
+
+    messages.forEach(msg => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${msg.direction}`;
+
+        let content = '';
+        switch(msg.message_type) {
+            case 'text':
+                content = `<div class="text-message">${msg.message_content}</div>`;
+                break;
+            case 'image':
+                content = `
+                    <div class="image-message">
+                        <img src="${msg.message_content}" alt="صورة" class="img-fluid rounded">
+                    </div>`;
+                break;
+            case 'audio':
+                content = `
+                    <div class="audio-message">
+                        <audio controls class="w-100">
+                            <source src="${msg.message_content}" type="audio/mpeg">
+                        </audio>
+                    </div>`;
+                break;
+            case 'document':
+                content = `
+                    <div class="document-message">
+                        <a href="${msg.message_content}" target="_blank" class="btn btn-outline-primary btn-sm">
+                            📄 عرض المستند
+                        </a>
+                    </div>`;
+                break;
+        }
+
+        messageDiv.innerHTML = content;
+        container.appendChild(messageDiv);
+    });
+
+    // التمرير لآخر رسالة
+    container.scrollTop = container.scrollHeight;
+}
+
+// إرسال رسالة
+function sendMessage() {
+    const input = document.getElementById('message-input');
+    const message = input.value.trim();
+
+    if(message) {
+        const payload = {
+            phone: currentCustomerPhone,
+            message: message,
+            type: 'text'
+        };
+
+        fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if(result.success) {
+                input.value = '';
+                loadCustomerChat();
+            } else {
+                alert('فشل في إرسال الرسالة: ' + result.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error sending message:', error);
+            alert('حدث خطأ في الإرسال');
+        });
+    }
+}
+
+// تسجيل رسالة صوتية
+function recordAudio() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('المتصفح لا يدعم تسجيل الصوت');
+        return;
+    }
+
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            const recorder = new MediaRecorder(stream);
+            const chunks = [];
+
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/mpeg' });
+                uploadAudio(blob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            recorder.start();
+            alert('بدء التسجيل... اضغط OK لإيقاف التسجيل');
+
+            setTimeout(() => {
+                if(recorder.state === 'recording') {
+                    recorder.stop();
+                }
+            }, 30000); // إيقاف تلقائي بعد 30 ثانية
+        })
+        .catch(error => {
+            console.error('Error recording audio:', error);
+            alert('فشل في تسجيل الصوت');
+        });
+}
+
+// رفع ملف مرفق
+function attachFile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,audio/*,.pdf,.doc,.docx';
+
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (file) {
+            uploadFile(file);
+        }
+    };
+
+    input.click();
+}
+
+// رفع الملف إلى السيرفر (تحتاج تنفيذ)
+function uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // هنا يجب إضافة endpoint لرفع الملفات
+    fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // إرسال رابط الملف كرسالة
+            const payload = {
+                phone: currentCustomerPhone,
+                message: result.url,
+                type: file.type.startsWith('image/') ? 'image' :
+                      file.type.startsWith('audio/') ? 'audio' : 'document'
+            };
+
+            fetch('/api/whatsapp/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(() => loadCustomerChat());
+        }
+    });
+}
+
+// رفع الصوت (نفس المنطق)
+function uploadAudio(blob) {
+    const formData = new FormData();
+    formData.append('file', blob, 'audio.mp3');
+
+    fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            const payload = {
+                phone: currentCustomerPhone,
+                message: result.url,
+                type: 'audio'
+            };
+
+            fetch('/api/whatsapp/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(() => loadCustomerChat());
+        }
+    });
+}
+
+// مكالمة صوتية (تحتاج تنفيذ)
+function makeAudioCall() {
+    alert('ميزة المكالمات الصوتية قيد التطوير');
+}
+
+// التقاط صورة (تحتاج تنفيذ)
+function takePhoto() {
+    alert('ميزة التقاط الصور قيد التطوير');
+}
+
+// تحميل المحادثة عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    loadCustomerChat();
+
+    // تحديث تلقائي كل 10 ثوان
+    setInterval(loadCustomerChat, 10000);
+});
+
+// إرسال بالضغط على Enter
+document.getElementById('message-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+</script>
+
+<style>
+.whatsapp-chat-interface {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    background: #e5ddd5;
+}
+
+.chat-header {
+    background: #25D366;
+    color: white;
+    padding: 15px;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.customer-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.customer-name {
+    font-weight: bold;
+}
+
+.customer-phone {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.chat-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.messages-container {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background: #e5ddd5;
+}
+
+.message {
+    margin-bottom: 10px;
+    max-width: 70%;
+    clear: both;
+}
+
+.message.incoming {
+    float: right;
+    background: white;
+    border-radius: 10px 10px 0 10px;
+    padding: 10px;
+    margin-left: auto;
+}
+
+.message.outgoing {
+    float: left;
+    background: #dcf8c6;
+    border-radius: 10px 10px 10px 0;
+    padding: 10px;
+    margin-right: auto;
+}
+
+.message-input-area {
+    padding: 15px;
+    border-top: 1px solid #ddd;
+    background: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.input-options {
+    display: flex;
+    gap: 5px;
+}
+
+#message-input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    resize: none;
+    padding: 10px;
+}
+
+.send-button {
+    background: #25D366;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.audio-message audio {
+    width: 250px;
+    height: 40px;
+}
+
+.image-message img {
+    max-width: 300px;
+    border-radius: 10px;
+}
+</style>
+{% endblock %}

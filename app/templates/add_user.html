@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">{{ 'إضافة مستخدم جديد' if lang == 'ar' else 'Add New User' }}</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="username" class="form-label">{{ 'اسم المستخدم' if lang == 'ar' else 'Username' }}</label>
+            <input type="text" class="form-control" id="username" name="username" required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">{{ 'كلمة المرور' if lang == 'ar' else 'Password' }}</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <div class="mb-3">
+            <label for="role" class="form-label">{{ 'الصلاحية' if lang == 'ar' else 'Role' }}</label>
+            <select class="form-select" id="role" name="role" required>
+                {% if current_user.role == 'admin' %}
+                    <option value="manager">{{ 'مدير' if lang == 'ar' else 'Manager' }}</option>
+                    <option value="admin">{{ 'مشرف' if lang == 'ar' else 'Admin' }}</option>
+                    <option value="employee">{{ 'موظف' if lang == 'ar' else 'Employee' }}</option>
+                {% else %}
+                    {# المدير يمكنه إضافة موظفين فقط #}
+                    <option value="employee">{{ 'موظف' if lang == 'ar' else 'Employee' }}</option>
+                {% endif %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">{{ 'إضافة' if lang == 'ar' else 'Add' }}</button>
+    </form>
+</div>
+{% endblock %}

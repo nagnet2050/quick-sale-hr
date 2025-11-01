@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}متابعة العملاء{% endblock %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-5">
+        <div class="card p-3 mb-4">
+            <h4 class="mb-3">تسجيل مشكلة جديدة للعميل</h4>
+            <form method="POST">
+                <div class="mb-2">
+                    <label>رقم هاتف العميل</label>
+                    <input type="text" name="client_phone" class="form-control" required>
+                </div>
+                <div class="mb-2">
+                    <label>اسم العميل</label>
+                    <input type="text" name="client_name" class="form-control" required>
+                </div>
+                <div class="mb-2">
+                    <label>وصف المشكلة</label>
+                    <textarea name="issue" class="form-control" required></textarea>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="resolved" id="resolved">
+                    <label class="form-check-label" for="resolved">تم حل المشكلة</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="escalated" id="escalated">
+                    <label class="form-check-label" for="escalated">تم تحويلها للإدارة</label>
+                </div>
+                <button type="submit" class="btn bg-theme">تسجيل المشكلة</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <h4 class="mb-3">سجل مشاكل العملاء</h4>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>رقم</th>
+                    <th>هاتف العميل</th>
+                    <th>اسم العميل</th>
+                    <th>المشكلة</th>
+                    <th>تم الحل</th>
+                    <th>تم تحويلها</th>
+                    <th>رد الإدارة</th>
+                    <th>إجراء الإدارة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tickets %}
+                <tr>
+                    <td>{{ t.id }}</td>
+                    <td>{{ t.client_phone }}</td>
+                    <td>{{ t.client_name }}</td>
+                    <td>{{ t.issue }}</td>
+                    <td>{{ 'نعم' if t.resolved else 'لا' }}</td>
+                    <td>{{ 'نعم' if t.escalated else 'لا' }}</td>
+                    <td>{{ t.admin_response or '-' }}</td>
+                    <td>
+                        {% if current_user.role in ['admin','manager'] %}
+                        <form method="POST" action="/client-support/respond/{{ t.id }}" class="d-flex">
+                            <input type="text" name="admin_response" class="form-control me-2" placeholder="رد الإدارة" required>
+                            <button type="submit" class="btn btn-sm btn-success">رد</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8">لا توجد مشاكل مسجلة بعد</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

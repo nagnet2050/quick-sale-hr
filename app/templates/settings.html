@@ -1,49 +1,852 @@
 {% extends 'base.html' %}
-{% block title %}{{ 'الإعدادات' if lang == 'ar' else 'Settings' }}{% endblock %}
+
+{% block title %}{{ 'إعدادات النظام' if lang == 'ar' else 'System Settings' }}{% endblock %}
+
 {% block content %}
-<div class="row">
-    <div class="col-12 mb-3">
-        <h2 class="theme-color">{{ 'إعدادات النظام' if lang == 'ar' else 'System Settings' }}</h2>
-        <form method="POST">
-            {{ csrf_token() }}
-            <div class="mb-3">
-                <label>{{ 'خط العرض للشركة' if lang == 'ar' else 'Company Latitude' }}</label>
-                <input type="number" step="any" name="company_lat" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label>{{ 'خط الطول للشركة' if lang == 'ar' else 'Company Longitude' }}</label>
-                <input type="number" step="any" name="company_lng" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label>{{ 'تاريخ بداية الدوام' if lang == 'ar' else 'Work Start Date' }}</label>
-                <input type="date" name="work_start_date" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label>{{ 'بداية الدوام' if lang == 'ar' else 'Work Start' }}</label>
-                <input type="time" name="work_start" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label>{{ 'تاريخ نهاية الدوام' if lang == 'ar' else 'Work End Date' }}</label>
-                <input type="date" name="work_end_date" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label>{{ 'نهاية الدوام' if lang == 'ar' else 'Work End' }}</label>
-                <input type="time" name="work_end" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label>{{ 'فاصل التنبيه (دقائق)' if lang == 'ar' else 'Presence Interval (min)' }}</label>
-                <input type="number" name="presence_interval_min" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label>{{ 'مهلة التنبيه (دقائق)' if lang == 'ar' else 'Presence Grace (min)' }}</label>
-                <input type="number" name="presence_grace_min" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label>{{ 'تفعيل صوت التنبيه' if lang == 'ar' else 'Enable Presence Sound' }}</label>
-                <input type="checkbox" name="presence_sound_enabled">
-            </div>
-            <button type="submit" class="btn bg-theme">{{ 'حفظ' if lang == 'ar' else 'Save' }}</button>
-        </form>
+<style>
+    /* Compact, clean styling for settings page only */
+    .settings-compact .form-control,
+    .settings-compact .form-select,
+    .settings-compact textarea {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.92rem;
+        border-radius: 0.45rem;
+    }
+    .settings-compact .form-label {
+        font-size: 0.92rem;
+        color: #555;
+    }
+    .settings-compact .card { border-radius: 0.65rem; }
+    .settings-compact .card-body { padding: 1rem; }
+    .settings-compact .nav-tabs .nav-link {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.92rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+    .settings-compact .btn { padding: 0.35rem 0.7rem; font-size: 0.92rem; border-radius: 0.45rem; }
+    .settings-compact .mb-3 { margin-bottom: 0.75rem !important; }
+        /* Modern header (hero) and sticky tabs */
+        .settings-hero {
+                background: linear-gradient(135deg, rgba(13,110,253,.08), rgba(13,110,253,.02));
+                border: 1px solid rgba(13,110,253,.12);
+                padding: 1rem 1.25rem;
+                border-radius: .75rem;
+                margin-bottom: 1rem;
+        }
+        .sticky-tabs { position: sticky; top: 64px; z-index: 10; background: var(--bs-body-bg); }
+        .sticky-tabs .nav-link { display: flex; align-items: center; gap: .35rem; }
+        .sticky-tabs .nav-link i { opacity: .8; }
+</style>
+
+<div class="container-fluid settings-compact">
+    <div class="settings-hero d-flex align-items-center justify-content-between">
+        <div>
+            <h4 class="m-0"><i class="bi bi-gear me-2"></i>{{ 'إعدادات النظام' if lang == 'ar' else 'System Settings' }}</h4>
+            <div class="text-muted small mt-1">{{ 'إدارة جميع إعدادات النظام والتحكم في الوظائف' if lang == 'ar' else 'Manage all system settings and controls' }}</div>
+        </div>
     </div>
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs mb-3 sticky-tabs" id="settingsTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="company-tab" data-bs-toggle="tab" data-bs-target="#company" type="button" role="tab">
+                <i class="bi bi-building"></i> {{ 'الشركة' if lang=='ar' else 'Company' }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="location-tab" data-bs-toggle="tab" data-bs-target="#location" type="button" role="tab">
+                <i class="bi bi-geo-alt-fill"></i> {{ 'الموقع' if lang=='ar' else 'Location' }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="workhours-tab" data-bs-toggle="tab" data-bs-target="#workhours" type="button" role="tab">
+                <i class="bi bi-clock"></i> {{ 'أوقات العمل' if lang=='ar' else 'Work Hours' }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">
+                <i class="bi bi-calendar-check"></i> {{ 'الحضور' if lang=='ar' else 'Attendance' }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="leave-tab" data-bs-toggle="tab" data-bs-target="#leave" type="button" role="tab">
+                <i class="bi bi-calendar-x"></i> {{ 'الإجازات' if lang=='ar' else 'Leaves' }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="payroll-tab" data-bs-toggle="tab" data-bs-target="#payroll" type="button" role="tab">
+                <i class="bi bi-cash-stack"></i> {{ 'الرواتب' if lang=='ar' else 'Payroll' }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications" type="button" role="tab">
+                <i class="bi bi-bell"></i> {{ 'الإشعارات' if lang=='ar' else 'Notifications' }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab">
+                <i class="bi bi-shield-lock"></i> {{ 'الأمان' if lang=='ar' else 'Security' }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab">
+                <i class="bi bi-sliders"></i> {{ 'النظام' if lang=='ar' else 'System' }}
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tabs Content -->
+    <form id="settingsForm">
+        <div class="tab-content" id="settingsTabsContent">
+            
+            <!-- Company Info Tab -->
+            <div class="tab-pane fade show active" id="company" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">{{ 'معلومات الشركة' if lang == 'ar' else 'Company Information' }}</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'اسم الشركة (عربي)' if lang == 'ar' else 'Company Name (Arabic)' }}</label>
+                                <input type="text" class="form-control" name="company_name_ar" value="{{ settings.company_name_ar or '' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'اسم الشركة (إنجليزي)' if lang == 'ar' else 'Company Name (English)' }}</label>
+                                <input type="text" class="form-control" name="company_name_en" value="{{ settings.company_name_en or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'البريد الإلكتروني' if lang == 'ar' else 'Email' }}</label>
+                                <input type="email" class="form-control" name="company_email" value="{{ settings.company_email or '' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'الهاتف' if lang == 'ar' else 'Phone' }}</label>
+                                <input type="tel" class="form-control" name="company_phone" value="{{ settings.company_phone or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'العنوان (عربي)' if lang == 'ar' else 'Address (Arabic)' }}</label>
+                                <textarea class="form-control" name="company_address_ar" rows="3">{{ settings.company_address_ar or '' }}</textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'العنوان (إنجليزي)' if lang == 'ar' else 'Address (English)' }}</label>
+                                <textarea class="form-control" name="company_address_en" rows="3">{{ settings.company_address_en or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'الموقع الإلكتروني' if lang == 'ar' else 'Website' }}</label>
+                                <input type="url" class="form-control" name="company_website" value="{{ settings.company_website or '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'الرقم الضريبي' if lang == 'ar' else 'Tax Number' }}</label>
+                                <input type="text" class="form-control" name="tax_number" value="{{ settings.tax_number or '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'السجل التجاري' if lang == 'ar' else 'Commercial Register' }}</label>
+                                <input type="text" class="form-control" name="commercial_register" value="{{ settings.commercial_register or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">{{ 'شعار الشركة' if lang == 'ar' else 'Company Logo' }}</label>
+                            <div class="d-flex align-items-center gap-3">
+                                {% if settings.company_logo %}
+                                <img src="{{ settings.company_logo }}" alt="Logo" style="max-height: 80px;" class="border rounded">
+                                {% endif %}
+                                <input type="file" class="form-control" id="logoUpload" accept="image/*" style="max-width: 300px;">
+                                <button type="button" class="btn btn-primary" onclick="uploadLogo()">
+                                    <i class="bi bi-upload"></i> {{ 'رفع' if lang == 'ar' else 'Upload' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location Tab -->
+            <div class="tab-pane fade" id="location" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">{{ 'إعدادات الموقع' if lang == 'ar' else 'Location Settings' }}</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'خط العرض' if lang == 'ar' else 'Latitude' }}</label>
+                                <input type="number" step="any" class="form-control" name="company_lat" value="{{ settings.company_lat or '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'خط الطول' if lang == 'ar' else 'Longitude' }}</label>
+                                <input type="number" step="any" class="form-control" name="company_lng" value="{{ settings.company_lng or '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'نطاق الحضور المسموح (متر)' if lang == 'ar' else 'Allowed Radius (meters)' }}</label>
+                                <input type="number" class="form-control" name="allowed_radius_meters" value="{{ settings.allowed_radius_meters or 500 }}">
+                                <small class="text-muted">{{ 'المسافة المسموحة من موقع الشركة للحضور' if lang == 'ar' else 'Allowed distance from company location' }}</small>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            {{ 'يمكنك الحصول على الإحداثيات من Google Maps بالنقر بزر الماوس الأيمن على الموقع' if lang == 'ar' else 'You can get coordinates from Google Maps by right-clicking on the location' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Work Hours Tab -->
+            <div class="tab-pane fade" id="workhours" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">{{ 'أوقات العمل' if lang == 'ar' else 'Work Hours' }}</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'بداية الدوام' if lang == 'ar' else 'Work Start' }}</label>
+                                <input type="time" class="form-control" name="work_start" value="{{ settings.work_start or '09:00' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'نهاية الدوام' if lang == 'ar' else 'Work End' }}</label>
+                                <input type="time" class="form-control" name="work_end" value="{{ settings.work_end or '17:00' }}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'بداية الاستراحة' if lang == 'ar' else 'Break Start' }}</label>
+                                <input type="time" class="form-control" name="break_start" value="{{ settings.break_start or '' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'نهاية الاستراحة' if lang == 'ar' else 'Break End' }}</label>
+                                <input type="time" class="form-control" name="break_end" value="{{ settings.break_end or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">{{ 'أيام العمل' if lang == 'ar' else 'Work Days' }}</label>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    {% set work_days = settings.work_days.split(',') if settings.work_days else ['0','1','2','3','4'] %}
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input work-day-check" type="checkbox" value="0" {% if '0' in work_days %}checked{% endif %}>
+                                        <label class="form-check-label">{{ 'الأحد' if lang == 'ar' else 'Sunday' }}</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input work-day-check" type="checkbox" value="1" {% if '1' in work_days %}checked{% endif %}>
+                                        <label class="form-check-label">{{ 'الإثنين' if lang == 'ar' else 'Monday' }}</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input work-day-check" type="checkbox" value="2" {% if '2' in work_days %}checked{% endif %}>
+                                        <label class="form-check-label">{{ 'الثلاثاء' if lang == 'ar' else 'Tuesday' }}</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input work-day-check" type="checkbox" value="3" {% if '3' in work_days %}checked{% endif %}>
+                                        <label class="form-check-label">{{ 'الأربعاء' if lang == 'ar' else 'Wednesday' }}</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input work-day-check" type="checkbox" value="4" {% if '4' in work_days %}checked{% endif %}>
+                                        <label class="form-check-label">{{ 'الخميس' if lang == 'ar' else 'Thursday' }}</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input work-day-check" type="checkbox" value="5" {% if '5' in work_days %}checked{% endif %}>
+                                        <label class="form-check-label">{{ 'الجمعة' if lang == 'ar' else 'Friday' }}</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input work-day-check" type="checkbox" value="6" {% if '6' in work_days %}checked{% endif %}>
+                                        <label class="form-check-label">{{ 'السبت' if lang == 'ar' else 'Saturday' }}</label>
+                                    </div>
+                                    <input type="hidden" name="work_days" id="work_days_input" value="{{ settings.work_days or '0,1,2,3,4' }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Tab -->
+            <div class="tab-pane fade" id="attendance" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">{{ 'إعدادات الحضور والانصراف' if lang == 'ar' else 'Attendance Settings' }}</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'فاصل التنبيه (دقيقة)' if lang == 'ar' else 'Presence Interval (min)' }}</label>
+                                <input type="number" class="form-control" name="presence_interval_min" value="{{ settings.presence_interval_min or 30 }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'مهلة التنبيه (دقيقة)' if lang == 'ar' else 'Grace Period (min)' }}</label>
+                                <input type="number" class="form-control" name="presence_grace_min" value="{{ settings.presence_grace_min or 5 }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'حد التأخير المسموح (دقيقة)' if lang == 'ar' else 'Late Threshold (min)' }}</label>
+                                <input type="number" class="form-control" name="late_arrival_threshold_min" value="{{ settings.late_arrival_threshold_min or 15 }}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'حد المغادرة المبكرة (دقيقة)' if lang == 'ar' else 'Early Leave Threshold (min)' }}</label>
+                                <input type="number" class="form-control" name="early_leave_threshold_min" value="{{ settings.early_leave_threshold_min or 15 }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'وقت الانصراف التلقائي' if lang == 'ar' else 'Auto Checkout Time' }}</label>
+                                <input type="time" class="form-control" name="auto_checkout_time" value="{{ settings.auto_checkout_time or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="presence_sound_enabled" {% if settings.presence_sound_enabled %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'تفعيل صوت التنبيه' if lang == 'ar' else 'Enable Sound Alert' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="auto_checkout_enabled" {% if settings.auto_checkout_enabled %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'انصراف تلقائي' if lang == 'ar' else 'Auto Checkout' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="require_checkout_location" {% if settings.require_checkout_location %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'طلب موقع عند الانصراف' if lang == 'ar' else 'Require Location on Checkout' }}</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Tab -->
+            <div class="tab-pane fade" id="leave" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">{{ 'إعدادات الإجازات' if lang == 'ar' else 'Leave Settings' }}</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'الإجازة السنوية (يوم)' if lang == 'ar' else 'Annual Leave (days)' }}</label>
+                                <input type="number" class="form-control" name="annual_leave_days" value="{{ settings.annual_leave_days or 21 }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'الإجازة المرضية (يوم)' if lang == 'ar' else 'Sick Leave (days)' }}</label>
+                                <input type="number" class="form-control" name="sick_leave_days" value="{{ settings.sick_leave_days or 30 }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'الإجازة الطارئة (يوم)' if lang == 'ar' else 'Casual Leave (days)' }}</label>
+                                <input type="number" class="form-control" name="casual_leave_days" value="{{ settings.casual_leave_days or 7 }}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'الحد الأقصى لترحيل الإجازات (يوم)' if lang == 'ar' else 'Max Carry Forward Days' }}</label>
+                                <input type="number" class="form-control" name="max_carry_forward_days" value="{{ settings.max_carry_forward_days or 5 }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'الإشعار المسبق للإجازة (يوم)' if lang == 'ar' else 'Leave Notice Period (days)' }}</label>
+                                <input type="number" class="form-control" name="min_leave_notice_days" value="{{ settings.min_leave_notice_days or 3 }}">
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="carry_forward_leaves" {% if settings.carry_forward_leaves %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'السماح بترحيل الإجازات' if lang == 'ar' else 'Allow Carry Forward' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="leave_approval_required" {% if settings.leave_approval_required %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'مطلوب موافقة على الإجازات' if lang == 'ar' else 'Leave Approval Required' }}</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payroll Tab -->
+            <div class="tab-pane fade" id="payroll" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">{{ 'إعدادات الرواتب' if lang == 'ar' else 'Payroll Settings' }}</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'العملة' if lang == 'ar' else 'Currency' }}</label>
+                                <select class="form-select" name="payroll_currency">
+                                    <option value="SAR" {% if settings.payroll_currency == 'SAR' %}selected{% endif %}>SAR - ريال سعودي</option>
+                                    <option value="USD" {% if settings.payroll_currency == 'USD' %}selected{% endif %}>USD - دولار أمريكي</option>
+                                    <option value="EUR" {% if settings.payroll_currency == 'EUR' %}selected{% endif %}>EUR - يورو</option>
+                                    <option value="AED" {% if settings.payroll_currency == 'AED' %}selected{% endif %}>AED - درهم إماراتي</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'يوم صرف الراتب' if lang == 'ar' else 'Payroll Day' }}</label>
+                                <input type="number" min="1" max="28" class="form-control" name="payroll_day" value="{{ settings.payroll_day or 1 }}">
+                                <small class="text-muted">{{ 'من 1 إلى 28 من كل شهر' if lang == 'ar' else 'From 1 to 28 of each month' }}</small>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'معدل الساعات الإضافية (عادي)' if lang == 'ar' else 'Overtime Rate (Normal)' }}</label>
+                                <input type="number" step="0.1" class="form-control" name="overtime_rate" value="{{ settings.overtime_rate or 1.5 }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'معدل الساعات الإضافية (عطلة نهاية الأسبوع)' if lang == 'ar' else 'Weekend Overtime Rate' }}</label>
+                                <input type="number" step="0.1" class="form-control" name="weekend_overtime_rate" value="{{ settings.weekend_overtime_rate or 2.0 }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'معدل الساعات الإضافية (عطلة رسمية)' if lang == 'ar' else 'Holiday Overtime Rate' }}</label>
+                                <input type="number" step="0.1" class="form-control" name="holiday_overtime_rate" value="{{ settings.holiday_overtime_rate or 2.5 }}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'معدل خصم التأخير' if lang == 'ar' else 'Late Deduction Rate' }}</label>
+                                <input type="number" step="0.1" class="form-control" name="late_deduction_rate" value="{{ settings.late_deduction_rate or 0.5 }}">
+                                <small class="text-muted">{{ 'نسبة الخصم من ساعة العمل' if lang == 'ar' else 'Deduction percentage per work hour' }}</small>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="auto_calculate_overtime" {% if settings.auto_calculate_overtime %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'حساب تلقائي للساعات الإضافية' if lang == 'ar' else 'Auto Calculate Overtime' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="deduct_late_from_salary" {% if settings.deduct_late_from_salary %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'خصم التأخير من الراتب' if lang == 'ar' else 'Deduct Late from Salary' }}</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Tab -->
+            <div class="tab-pane fade" id="notifications" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">{{ 'إعدادات الإشعارات' if lang == 'ar' else 'Notification Settings' }}</h5>
+                        
+                        <h6 class="mb-3">{{ 'قنوات الإشعارات' if lang == 'ar' else 'Notification Channels' }}</h6>
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="email_notifications_enabled" {% if settings.email_notifications_enabled %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'إشعارات البريد الإلكتروني' if lang == 'ar' else 'Email Notifications' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="sms_notifications_enabled" {% if settings.sms_notifications_enabled %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'إشعارات الرسائل النصية' if lang == 'ar' else 'SMS Notifications' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="whatsapp_notifications_enabled" {% if settings.whatsapp_notifications_enabled %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'إشعارات واتساب' if lang == 'ar' else 'WhatsApp Notifications' }}</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="mb-3">{{ 'أحداث الإشعارات' if lang == 'ar' else 'Notification Events' }}</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" name="notify_on_late_arrival" {% if settings.notify_on_late_arrival %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'إشعار عند التأخير' if lang == 'ar' else 'Notify on Late Arrival' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" name="notify_on_absence" {% if settings.notify_on_absence %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'إشعار عند الغياب' if lang == 'ar' else 'Notify on Absence' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" name="notify_on_leave_request" {% if settings.notify_on_leave_request %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'إشعار عند طلب إجازة' if lang == 'ar' else 'Notify on Leave Request' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" name="notify_managers_on_employee_actions" {% if settings.notify_managers_on_employee_actions %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'إشعار المديرين بإجراءات الموظفين' if lang == 'ar' else 'Notify Managers on Employee Actions' }}</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Tab -->
+            <div class="tab-pane fade" id="security" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">{{ 'إعدادات الأمان' if lang == 'ar' else 'Security Settings' }}</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'الحد الأدنى لطول كلمة المرور' if lang == 'ar' else 'Minimum Password Length' }}</label>
+                                <input type="number" min="4" max="20" class="form-control" name="password_min_length" value="{{ settings.password_min_length or 6 }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'صلاحية كلمة المرور (يوم)' if lang == 'ar' else 'Password Expiry (days)' }}</label>
+                                <input type="number" class="form-control" name="password_expiry_days" value="{{ settings.password_expiry_days or 90 }}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'الحد الأقصى لمحاولات تسجيل الدخول' if lang == 'ar' else 'Max Login Attempts' }}</label>
+                                <input type="number" min="3" max="10" class="form-control" name="max_login_attempts" value="{{ settings.max_login_attempts or 5 }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'مدة انتهاء الجلسة (دقيقة)' if lang == 'ar' else 'Session Timeout (minutes)' }}</label>
+                                <input type="number" class="form-control" name="session_timeout_minutes" value="{{ settings.session_timeout_minutes or 120 }}">
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="require_password_change_first_login" {% if settings.require_password_change_first_login %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'مطلوب تغيير كلمة المرور عند أول دخول' if lang == 'ar' else 'Require Password Change on First Login' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="two_factor_enabled" {% if settings.two_factor_enabled %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'تفعيل المصادقة الثنائية' if lang == 'ar' else 'Enable Two-Factor Authentication' }}</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4"/>
+                        <h6 class="mb-3"><i class="bi bi-envelope-paper"></i> {{ 'تهيئة البريد الإلكتروني' if lang=='ar' else 'Email Configuration' }}</h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'مزود البريد' if lang=='ar' else 'Email Provider' }}</label>
+                                <select class="form-select" name="email_provider">
+                                    {% set prov = (settings.email_provider or 'SMTP') %}
+                                    <option value="SMTP" {% if prov == 'SMTP' %}selected{% endif %}>SMTP</option>
+                                    <option value="MAILGUN" {% if prov == 'MAILGUN' %}selected{% endif %}>Mailgun</option>
+                                    <option value="SENDGRID" {% if prov == 'SENDGRID' %}selected{% endif %}>SendGrid</option>
+                                </select>
+                                <small class="text-muted">{{ 'اختر المزود وسيتم استخدام المفاتيح المناسبة أدناه' if lang=='ar' else 'Choose provider; relevant keys used below' }}</small>
+                            </div>
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">{{ 'SendGrid API Key' if lang=='ar' else 'SendGrid API Key' }}</label>
+                                <input type="password" class="form-control" name="sendgrid_api_key" placeholder="SG.xxxxxx..." value="{{ '***' if settings.sendgrid_api_key else '' }}">
+                                <small class="text-muted">{{ 'لن يتم عرض المفتاح بعد الحفظ. مستخدم عند اختيار SendGrid.' if lang=='ar' else 'Not displayed after saving. Used when provider is SendGrid.' }}</small>
+                            </div>
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">{{ 'SendGrid Template ID لإشعار تغيير كلمة المرور' if lang=='ar' else 'SendGrid Template ID for Password Changed' }}</label>
+                                <input type="text" class="form-control" name="sendgrid_password_changed_template_id" placeholder="d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value="{{ settings.sendgrid_password_changed_template_id or '' }}">
+                                <small class="text-muted">{{ 'اختياري: عند توفره سيتم استخدام القالب الديناميكي لإشعار تغيير كلمة المرور' if lang=='ar' else 'Optional: If provided, a dynamic template will be used for the password-changed notification' }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Tab -->
+            <div class="tab-pane fade" id="system" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">{{ 'إعدادات النظام العامة' if lang == 'ar' else 'General System Settings' }}</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'اللغة الافتراضية' if lang == 'ar' else 'Default Language' }}</label>
+                                <select class="form-select" name="language">
+                                    <option value="ar" {% if settings.language == 'ar' %}selected{% endif %}>العربية</option>
+                                    <option value="en" {% if settings.language == 'en' %}selected{% endif %}>English</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'المنطقة الزمنية' if lang == 'ar' else 'Timezone' }}</label>
+                                <select class="form-select" name="timezone">
+                                    <option value="Asia/Riyadh" {% if settings.timezone == 'Asia/Riyadh' %}selected{% endif %}>Asia/Riyadh (GMT+3)</option>
+                                    <option value="Asia/Dubai" {% if settings.timezone == 'Asia/Dubai' %}selected{% endif %}>Asia/Dubai (GMT+4)</option>
+                                    <option value="Africa/Cairo" {% if settings.timezone == 'Africa/Cairo' %}selected{% endif %}>Africa/Cairo (GMT+2)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'عدد السجلات في الصفحة' if lang == 'ar' else 'Records Per Page' }}</label>
+                                <select class="form-select" name="records_per_page">
+                                    <option value="10" {% if settings.records_per_page == 10 %}selected{% endif %}>10</option>
+                                    <option value="25" {% if settings.records_per_page == 25 %}selected{% endif %}>25</option>
+                                    <option value="50" {% if settings.records_per_page == 50 %}selected{% endif %}>50</option>
+                                    <option value="100" {% if settings.records_per_page == 100 %}selected{% endif %}>100</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'تنسيق التاريخ' if lang == 'ar' else 'Date Format' }}</label>
+                                <select class="form-select" name="date_format">
+                                    <option value="DD/MM/YYYY" {% if settings.date_format == 'DD/MM/YYYY' %}selected{% endif %}>DD/MM/YYYY</option>
+                                    <option value="MM/DD/YYYY" {% if settings.date_format == 'MM/DD/YYYY' %}selected{% endif %}>MM/DD/YYYY</option>
+                                    <option value="YYYY-MM-DD" {% if settings.date_format == 'YYYY-MM-DD' %}selected{% endif %}>YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'تنسيق الوقت' if lang == 'ar' else 'Time Format' }}</label>
+                                <select class="form-select" name="time_format">
+                                    <option value="HH:mm" {% if settings.time_format == 'HH:mm' %}selected{% endif %}>24 ساعة (HH:mm)</option>
+                                    <option value="hh:mm A" {% if settings.time_format == 'hh:mm A' %}selected{% endif %}>12 ساعة (hh:mm A)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'بداية السنة المالية (شهر)' if lang == 'ar' else 'Fiscal Year Start (month)' }}</label>
+                                <select class="form-select" name="fiscal_year_start_month">
+                                    <option value="1" {% if settings.fiscal_year_start_month == 1 %}selected{% endif %}>{{ 'يناير' if lang == 'ar' else 'January' }}</option>
+                                    <option value="4" {% if settings.fiscal_year_start_month == 4 %}selected{% endif %}>{{ 'أبريل' if lang == 'ar' else 'April' }}</option>
+                                    <option value="7" {% if settings.fiscal_year_start_month == 7 %}selected{% endif %}>{{ 'يوليو' if lang == 'ar' else 'July' }}</option>
+                                    <option value="10" {% if settings.fiscal_year_start_month == 10 %}selected{% endif %}>{{ 'أكتوبر' if lang == 'ar' else 'October' }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'نص تذييل التقارير (عربي)' if lang == 'ar' else 'Report Footer (Arabic)' }}</label>
+                                <textarea class="form-control" name="report_footer_text_ar" rows="2">{{ settings.report_footer_text_ar or '' }}</textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ 'نص تذييل التقارير (إنجليزي)' if lang == 'ar' else 'Report Footer (English)' }}</label>
+                                <textarea class="form-control" name="report_footer_text_en" rows="2">{{ settings.report_footer_text_en or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="auto_backup_enabled" {% if settings.auto_backup_enabled %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'تفعيل النسخ الاحتياطي التلقائي' if lang == 'ar' else 'Enable Auto Backup' }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="report_logo_enabled" {% if settings.report_logo_enabled %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'إظهار الشعار في التقارير' if lang == 'ar' else 'Show Logo in Reports' }}</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'تكرار تقييم الأداء (شهر)' if lang == 'ar' else 'Performance Review Frequency (months)' }}</label>
+                                <input type="number" min="1" max="12" class="form-control" name="performance_review_frequency_months" value="{{ settings.performance_review_frequency_months or 6 }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'الحد الأدنى لدرجة الأداء' if lang == 'ar' else 'Min Performance Score' }}</label>
+                                <input type="number" step="0.1" class="form-control" name="min_performance_score" value="{{ settings.min_performance_score or 0.0 }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ 'الحد الأقصى لدرجة الأداء' if lang == 'ar' else 'Max Performance Score' }}</label>
+                                <input type="number" step="0.1" class="form-control" name="max_performance_score" value="{{ settings.max_performance_score or 5.0 }}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="auto_generate_performance_alerts" {% if settings.auto_generate_performance_alerts %}checked{% endif %}>
+                                    <label class="form-check-label">{{ 'تنبيهات تلقائية لتقييم الأداء' if lang == 'ar' else 'Auto Generate Performance Alerts' }}</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary btn-lg me-2">
+                    <i class="bi bi-save"></i> {{ 'حفظ التغييرات' if lang == 'ar' else 'Save Changes' }}
+                </button>
+                <button type="button" class="btn btn-warning btn-lg me-2" onclick="resetDefaults()">
+                    <i class="bi bi-arrow-counterclockwise"></i> {{ 'إعادة تعيين للافتراضي' if lang == 'ar' else 'Reset to Defaults' }}
+                </button>
+                <button type="button" class="btn btn-secondary btn-lg" onclick="location.reload()">
+                    <i class="bi bi-x-circle"></i> {{ 'إلغاء' if lang == 'ar' else 'Cancel' }}
+                </button>
+            </div>
+        </div>
+    </form>
 </div>
+
+<script>
+// Update work days hidden input
+document.querySelectorAll('.work-day-check').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const selectedDays = Array.from(document.querySelectorAll('.work-day-check:checked'))
+            .map(cb => cb.value);
+        document.getElementById('work_days_input').value = selectedDays.join(',');
+    });
+});
+
+// Form submission
+document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/api/settings/update', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '{{ "نجح!" if lang == "ar" else "Success!" }}',
+                text: result.message,
+                confirmButtonText: '{{ "حسناً" if lang == "ar" else "OK" }}'
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: '{{ "خطأ!" if lang == "ar" else "Error!" }}',
+                text: result.message,
+                confirmButtonText: '{{ "حسناً" if lang == "ar" else "OK" }}'
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: '{{ "خطأ!" if lang == "ar" else "Error!" }}',
+            text: '{{ "حدث خطأ أثناء حفظ الإعدادات" if lang == "ar" else "An error occurred while saving settings" }}',
+            confirmButtonText: '{{ "حسناً" if lang == "ar" else "OK" }}'
+        });
+    }
+});
+
+// Upload logo
+async function uploadLogo() {
+    const fileInput = document.getElementById('logoUpload');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        Swal.fire({
+            icon: 'warning',
+            title: '{{ "تنبيه" if lang == "ar" else "Warning" }}',
+            text: '{{ "الرجاء اختيار ملف" if lang == "ar" else "Please select a file" }}',
+            confirmButtonText: '{{ "حسناً" if lang == "ar" else "OK" }}'
+        });
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('logo', file);
+    
+    try {
+        const response = await fetch('/api/settings/upload-logo', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '{{ "نجح!" if lang == "ar" else "Success!" }}',
+                text: result.message,
+                confirmButtonText: '{{ "حسناً" if lang == "ar" else "OK" }}'
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: '{{ "خطأ!" if lang == "ar" else "Error!" }}',
+                text: result.message,
+                confirmButtonText: '{{ "حسناً" if lang == "ar" else "OK" }}'
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: '{{ "خطأ!" if lang == "ar" else "Error!" }}',
+            text: '{{ "حدث خطأ أثناء رفع الشعار" if lang == "ar" else "An error occurred while uploading logo" }}',
+            confirmButtonText: '{{ "حسناً" if lang == "ar" else "OK" }}'
+        });
+    }
+}
+
+// Reset to defaults
+async function resetDefaults() {
+    const result = await Swal.fire({
+        icon: 'warning',
+        title: '{{ "هل أنت متأكد؟" if lang == "ar" else "Are you sure?" }}',
+        text: '{{ "سيتم إعادة تعيين جميع الإعدادات للقيم الافتراضية" if lang == "ar" else "All settings will be reset to default values" }}',
+        showCancelButton: true,
+        confirmButtonText: '{{ "نعم، إعادة تعيين" if lang == "ar" else "Yes, reset" }}',
+        cancelButtonText: '{{ "إلغاء" if lang == "ar" else "Cancel" }}'
+    });
+    
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch('/api/settings/reset-defaults', {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '{{ "نجح!" if lang == "ar" else "Success!" }}',
+                    text: data.message,
+                    confirmButtonText: '{{ "حسناً" if lang == "ar" else "OK" }}'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: '{{ "خطأ!" if lang == "ar" else "Error!" }}',
+                    text: data.message,
+                    confirmButtonText: '{{ "حسناً" if lang == "ar" else "OK" }}'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: '{{ "خطأ!" if lang == "ar" else "Error!" }}',
+                text: '{{ "حدث خطأ أثناء إعادة التعيين" if lang == "ar" else "An error occurred during reset" }}',
+                confirmButtonText: '{{ "حسناً" if lang == "ar" else "OK" }}'
+            });
+        }
+    }
+}
+</script>
 {% endblock %}

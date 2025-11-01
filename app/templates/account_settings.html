@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}إعدادات الحساب{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <h2 class="mb-4">
+                {% if lang == 'ar' %}
+                    إعدادات الحساب
+                {% else %}
+                    Account Settings
+                {% endif %}
+            </h2>
+
+            <!-- رسائل التنبيه -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{% if category == 'danger' %}danger{% elif category == 'success' %}success{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- معلومات الحساب الحالية -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    {% if lang == 'ar' %}
+                        معلومات الحساب
+                    {% else %}
+                        Account Information
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            {% if lang == 'ar' %}اسم المستخدم{% else %}Username{% endif %}
+                        </label>
+                        <p class="form-control-plaintext">{{ user.username }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            {% if lang == 'ar' %}الدور{% else %}Role{% endif %}
+                        </label>
+                        <p class="form-control-plaintext">
+                            {% if user.role == 'admin' %}
+                                {% if lang == 'ar' %}مسؤول{% else %}Admin{% endif %}
+                            {% elif user.role == 'manager' %}
+                                {% if lang == 'ar' %}مدير{% else %}Manager{% endif %}
+                            {% else %}
+                                {% if lang == 'ar' %}موظف{% else %}Employee{% endif %}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- تغيير اسم المستخدم -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    {% if lang == 'ar' %}
+                        تغيير اسم المستخدم
+                    {% else %}
+                        Change Username
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('account.account_settings') }}">
+                        <div class="mb-3">
+                            <label for="new_username" class="form-label">
+                                {% if lang == 'ar' %}اسم المستخدم الجديد{% else %}New Username{% endif %}
+                            </label>
+                            <input type="text" class="form-control" id="new_username" name="new_username" required>
+                            <small class="form-text text-muted">
+                                {% if lang == 'ar' %}
+                                    أدخل اسم المستخدم الجديد
+                                {% else %}
+                                    Enter your new username
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">
+                                {% if lang == 'ar' %}كلمة المرور الحالية{% else %}Current Password{% endif %}
+                            </label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <small class="form-text text-muted">
+                                {% if lang == 'ar' %}
+                                    أدخل كلمة المرور الحالية للتحقق
+                                {% else %}
+                                    Enter your current password to confirm
+                                {% endif %}
+                            </small>
+                        </div>
+                        <input type="hidden" name="action" value="change_username">
+                        <button type="submit" class="btn btn-info">
+                            {% if lang == 'ar' %}تغيير اسم المستخدم{% else %}Change Username{% endif %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- تغيير كلمة المرور -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    {% if lang == 'ar' %}
+                        تغيير كلمة المرور
+                    {% else %}
+                        Change Password
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('account.account_settings') }}">
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label">
+                                {% if lang == 'ar' %}كلمة المرور الحالية{% else %}Current Password{% endif %}
+                            </label>
+                            <input type="password" class="form-control" id="current_password" name="current_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">
+                                {% if lang == 'ar' %}كلمة المرور الجديدة{% else %}New Password{% endif %}
+                            </label>
+                            <input type="password" class="form-control" id="new_password" name="new_password" required>
+                            <small class="form-text text-muted">
+                                {% if lang == 'ar' %}
+                                    يجب أن تكون 4 أحرف على الأقل
+                                {% else %}
+                                    Must be at least 4 characters
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">
+                                {% if lang == 'ar' %}تأكيد كلمة المرور{% else %}Confirm Password{% endif %}
+                            </label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        </div>
+                        <input type="hidden" name="action" value="change_password">
+                        <button type="submit" class="btn btn-warning">
+                            {% if lang == 'ar' %}تغيير كلمة المرور{% else %}Change Password{% endif %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- زر العودة -->
+            <div class="mb-4">
+                <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-secondary">
+                    {% if lang == 'ar' %}العودة للرئيسية{% else %}Back to Dashboard{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .card-header {
+        border-radius: 8px 8px 0 0;
+        font-weight: bold;
+    }
+    .btn {
+        border-radius: 4px;
+        font-weight: 500;
+    }
+    .form-label {
+        color: #333;
+    }
+    .alert {
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}

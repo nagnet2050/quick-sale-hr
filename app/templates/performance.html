@@ -6,7 +6,7 @@
         <h2 class="theme-color">{{ 'تقييم الأداء الوظيفي' if lang == 'ar' else 'Performance Evaluation' }}</h2>
         <!-- Form to add new performance evaluation -->
         <form method="POST" class="row g-3 mb-4">
-            {{ csrf_token() }}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="col-md-4">
                 <label class="form-label">{{ 'الموظف' if lang == 'ar' else 'Employee' }}</label>
                 <select name="employee_id" class="form-select">
@@ -40,6 +40,7 @@
                     <th>{{ 'تاريخ التقييم' if lang == 'ar' else 'Review Date' }}</th>
                     <th>{{ 'الدرجة' if lang == 'ar' else 'Score' }}</th>
                     <th>{{ 'ملاحظات' if lang == 'ar' else 'Notes' }}</th>
+                    <th>{{ 'حذف' if lang == 'ar' else 'Delete' }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -50,13 +51,9 @@
                     <td>{{ p.review_date }}</td>
                     <td>{{ p.score }}</td>
                     <td>{{ p.notes }}</td>
-                    <td>
-                        {% if current_user.is_authenticated and current_user.role in ['admin','manager'] %}
-                        <form method="POST" action="/performance/delete/{{ p.id }}" style="display:inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا التقييم؟');">
-                            <button type="submit" class="btn btn-sm btn-danger">{{ 'حذف' if lang=='ar' else 'Delete' }}</button>
-                        </form>
-                        {% endif %}
-                    </td>
+                    <form method="POST" action="/performance/delete/{{ p.id }}" style="display:inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا التقييم؟');">
+                        <button type="submit" class="btn btn-sm btn-danger">{{ 'حذف' if lang=='ar' else 'Delete' }}</button>
+                    </form>
                 </tr>
                 {% endfor %}
             </tbody>

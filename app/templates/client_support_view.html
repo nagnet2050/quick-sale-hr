@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'تفاصيل التذكرة' if lang == 'ar' else 'Ticket Details' }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0"><i class="fas fa-ticket-alt"></i> {{ 'تفاصيل التذكرة' if lang=='ar' else 'Ticket Details' }} #{{ ticket.id }}</h3>
+    <a href="{{ url_for('client_support.client_support') }}" class="btn btn-outline-secondary">{{ 'رجوع' if lang=='ar' else 'Back' }}</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="text-muted small">{{ 'العميل' if lang=='ar' else 'Client' }}</label>
+              <div class="fw-bold">{{ ticket.client_name }}{% if ticket.client_company %} <span class="text-muted">- {{ ticket.client_company }}</span>{% endif %}</div>
+              <div class="small text-muted">{{ ticket.client_phone }}{% if ticket.client_email %} • {{ ticket.client_email }}{% endif %}</div>
+            </div>
+            <div class="col-md-3">
+              <label class="text-muted small">{{ 'الحالة' if lang=='ar' else 'Status' }}</label>
+              <div>
+                <span class="badge bg-primary">{{ ticket.status }}</span>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label class="text-muted small">{{ 'الأولوية' if lang=='ar' else 'Priority' }}</label>
+              <div>
+                <span class="badge bg-{{ 'danger' if ticket.priority=='urgent' else ('warning' if ticket.priority=='high' else ('info' if ticket.priority=='medium' else 'secondary')) }}">
+                  {{ ticket.priority }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="text-muted small">{{ 'الوصف' if lang=='ar' else 'Description' }}</label>
+            <div class="border rounded p-3 bg-light">{{ ticket.issue }}</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-warning" onclick="openTransferModal({{ ticket.id }}, '{{ ticket.department }}')"><i class="fas fa-exchange-alt"></i> {{ 'تحويل' if lang=='ar' else 'Transfer' }}</button>
+            {% if not ticket.resolved %}
+            <button class="btn btn-success" onclick="resolveTicket({{ ticket.id }})"><i class="fas fa-check"></i> {{ 'حل' if lang=='ar' else 'Resolve' }}</button>
+            {% endif %}
+            <button class="btn btn-outline-primary" onclick="viewTransferHistory({{ ticket.id }})"><i class="fas fa-history"></i> {{ 'تاريخ التحويلات' if lang=='ar' else 'Transfer History' }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-header bg-light fw-bold">{{ 'ملاحظات الإدارة' if lang=='ar' else 'Admin Notes' }}</div>
+        <div class="card-body">
+          <form class="row g-2" method="POST" action="{{ url_for('client_support.respond_to_issue', ticket_id=ticket.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="col-12">
+              <input type="text" class="form-control" name="admin_response" placeholder="{{ 'أدخل رد الإدارة' if lang=='ar' else 'Enter admin response' }}">
+            </div>
+            <div class="col-12">
+              <button class="btn bg-theme" type="submit">{{ 'حفظ الرد' if lang=='ar' else 'Save Response' }}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-body">
+          <div class="mb-2 text-muted small">{{ 'القسم الحالي' if lang=='ar' else 'Current Department' }}</div>
+          {% set dept = departments.get(ticket.department) or {'name_ar': ticket.department,'name_en': ticket.department} %}
+          <div class="h6">
+            <span class="badge bg-secondary">{{ dept['name_ar'] if lang=='ar' else dept['name_en'] }}</span>
+          </div>
+          <hr>
+          <div class="small text-muted">{{ 'تم الإنشاء' if lang=='ar' else 'Created' }}: {{ ticket.created_at }}</div>
+          {% if ticket.updated_at %}<div class="small text-muted">{{ 'آخر تحديث' if lang=='ar' else 'Updated' }}: {{ ticket.updated_at }}</div>{% endif %}
+          {% if ticket.resolved_at %}<div class="small text-muted">{{ 'تاريخ الحل' if lang=='ar' else 'Resolved At' }}: {{ ticket.resolved_at }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-body">
+          <h6 class="mb-2">{{ 'إجراءات سريعة' if lang=='ar' else 'Quick Actions' }}</h6>
+          <button class="btn btn-outline-warning w-100 mb-2" onclick="openTransferModal({{ ticket.id }}, '{{ ticket.department }}')"><i class="fas fa-exchange-alt"></i> {{ 'تحويل' if lang=='ar' else 'Transfer' }}</button>
+          {% if not ticket.resolved %}
+          <button class="btn btn-outline-success w-100 mb-2" onclick="resolveTicket({{ ticket.id }})"><i class="fas fa-check"></i> {{ 'حل' if lang=='ar' else 'Resolve' }}</button>
+          {% endif %}
+          <button class="btn btn-outline-primary w-100" onclick="viewTransferHistory({{ ticket.id }})"><i class="fas fa-history"></i> {{ 'تاريخ التحويلات' if lang=='ar' else 'Transfer History' }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals reused -->
+<div class="modal fade" id="transferModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title">{{ 'تحويل التذكرة' if lang == 'ar' else 'Transfer Ticket' }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="transferTicketId" value="{{ ticket.id }}">
+        <input type="hidden" id="currentDepartment" value="{{ ticket.department }}">
+        <div class="mb-3">
+          <label class="form-label">{{ 'القسم الحالي' if lang == 'ar' else 'Current Department' }}</label>
+          {% set dept = departments.get(ticket.department) or {'name_ar': ticket.department,'name_en': ticket.department} %}
+          <input type="text" id="currentDeptDisplay" class="form-control" value="{{ dept['name_ar'] if lang=='ar' else dept['name_en'] }}" readonly>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'تحويل إلى' if lang == 'ar' else 'Transfer To' }} *</label>
+          <select class="form-select" id="toDepartment" onchange="loadDepartmentUsers(this.value)">
+            <option value="">{{ 'اختر القسم' if lang == 'ar' else 'Select Department' }}</option>
+            <option value="technical_support">{{ 'الدعم الفني' if lang == 'ar' else 'Technical Support' }}</option>
+            <option value="sales">{{ 'المبيعات' if lang == 'ar' else 'Sales' }}</option>
+            <option value="billing">{{ 'المحاسبة' if lang == 'ar' else 'Billing' }}</option>
+            <option value="management">{{ 'الإدارة' if lang == 'ar' else 'Management' }}</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'الموظف المسؤول' if lang == 'ar' else 'Assigned User' }}</label>
+          <select class="form-select" id="toUser">
+            <option value="">{{ 'بدون تعيين' if lang == 'ar' else 'No Assignment' }}</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'سبب التحويل' if lang == 'ar' else 'Transfer Reason' }} *</label>
+          <select class="form-select" id="transferReason">
+            <option value="خارج التخصص">{{ 'خارج التخصص' if lang == 'ar' else 'Out of Scope' }}</option>
+            <option value="يتطلب خبرة قسم آخر">{{ 'يتطلب خبرة قسم آخر' if lang == 'ar' else 'Requires Other Department Expertise' }}</option>
+            <option value="مشكلة تقنية - تحويل للدعم">{{ 'مشكلة تقنية - تحويل للدعم' if lang == 'ar' else 'Technical Issue - Transfer to Support' }}</option>
+            <option value="استفسار مبيعات - تحويل للمبيعات">{{ 'استفسار مبيعات - تحويل للمبيعات' if lang == 'ar' else 'Sales Inquiry - Transfer to Sales' }}</option>
+            <option value="يحتاج قرار إداري - تحويل للإدارة">{{ 'يحتاج قرار إداري - تحويل للإدارة' if lang == 'ar' else 'Needs Management Decision' }}</option>
+            <option value="طلب عميل للتحويل">{{ 'طلب عميل للتحويل' if lang == 'ar' else 'Client Requested Transfer' }}</option>
+            <option value="تصعيد للإدارة">{{ 'تصعيد للإدارة' if lang == 'ar' else 'Escalation to Management' }}</option>
+            <option value="أخرى">{{ 'أخرى' if lang == 'ar' else 'Other' }}</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'ملاحظات التحويل' if lang == 'ar' else 'Transfer Notes' }}</label>
+          <textarea class="form-control" id="transferNotes" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'إلغاء' if lang == 'ar' else 'Cancel' }}</button>
+        <button type="button" class="btn btn-warning" onclick="submitTransfer()">{{ 'تحويل' if lang == 'ar' else 'Transfer' }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="transferHistoryModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title">{{ 'تاريخ تحويلات التذكرة' if lang == 'ar' else 'Transfer History' }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="transferHistoryContent">
+        <div class="text-center">
+          <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const lang = '{{ lang }}';
+
+function openTransferModal(ticketId, currentDept) {
+  document.getElementById('transferTicketId').value = ticketId;
+  document.getElementById('currentDepartment').value = currentDept;
+  const modal = new bootstrap.Modal(document.getElementById('transferModal'));
+  modal.show();
+}
+
+async function loadDepartmentUsers(department) {
+  if (!department) return;
+  try {
+    const res = await fetch(`/api/client-support/departments/${department}`);
+    const data = await res.json();
+    const select = document.getElementById('toUser');
+    select.innerHTML = '<option value="">' + (lang==='ar'?'بدون تعيين':'No Assignment') + '</option>';
+    if (data.success && data.users) {
+      data.users.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id; opt.textContent = `${u.username} (${u.role})`;
+        select.appendChild(opt);
+      });
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function submitTransfer() {
+  const ticketId = document.getElementById('transferTicketId').value;
+  const toDept = document.getElementById('toDepartment').value;
+  const toUser = document.getElementById('toUser').value || null;
+  const reason = document.getElementById('transferReason').value;
+  const notes = document.getElementById('transferNotes').value;
+  if (!toDept || !reason) { alert(lang==='ar'?'يرجى ملء جميع الحقول المطلوبة':'Please fill all required fields'); return; }
+  try {
+    const res = await fetch(`/api/client-support/transfer/${ticketId}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ to_department: toDept, to_user: toUser, transfer_reason: reason, transfer_notes: notes })
+    });
+    const data = await res.json();
+    if (data.success) { location.reload(); }
+    else { alert(data.error || 'Error'); }
+  } catch(e){ console.error(e); }
+}
+
+async function viewTransferHistory(ticketId) {
+  const modal = new bootstrap.Modal(document.getElementById('transferHistoryModal'));
+  modal.show();
+  const container = document.getElementById('transferHistoryContent');
+  container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+  try {
+    const res = await fetch(`/api/client-support/transfer-history/${ticketId}`);
+    const data = await res.json();
+    if (data.success && data.transfers.length) {
+      let html='';
+      data.transfers.forEach(t => {
+        html += `<div class="card mb-2"><div class="card-body"><div class="d-flex justify-content-between">
+          <div><strong>${t.from_department_name}</strong> <i class="fas fa-arrow-right mx-1"></i> <strong>${t.to_department_name}</strong><br>
+          <small>${t.transfer_reason}</small>${t.transfer_notes?`<br><small>${t.transfer_notes}</small>`:''}
+          </div><small class="text-muted">${new Date(t.created_at).toLocaleString('ar-EG')}</small></div></div></div>`;
+      });
+      container.innerHTML = html;
+    } else {
+      container.innerHTML = '<p class="text-center text-muted">'+(lang==='ar'?'لا يوجد تاريخ تحويلات':'No transfer history')+'</p>';
+    }
+  } catch(e){ console.error(e); container.innerHTML = '<p class="text-danger">Error</p>'; }
+}
+
+async function resolveTicket(ticketId) {
+  const notes = prompt(lang==='ar'?'ملاحظات الحل (اختياري):':'Resolution notes (optional):');
+  try {
+    const res = await fetch(`/api/client-support/update-status/${ticketId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'resolved', resolution_notes: notes }) });
+    const data = await res.json();
+    if (data.success) location.reload(); else alert(data.error||'Error');
+  } catch(e){ console.error(e); }
+}
+</script>
+{% endblock %}

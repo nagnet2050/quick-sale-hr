@@ -1,4 +1,3 @@
-
 {% extends 'base.html' %}
 {% block title %}{{ 'الموظفين' if lang == 'ar' else 'Employees' }}{% endblock %}
 {% block content %}
@@ -41,30 +40,30 @@
         <div class="card-header bg-theme text-white fw-bold"><i class="bi bi-person-plus"></i> {{ 'إضافة موظف جديد' if lang == 'ar' else 'Add New Employee' }}</div>
         <div class="card-body">
             <form class="row g-2" method="POST">
-                {{ csrf_token() }}
+                {{ form.hidden_tag() }}
                 <div class="col-md-2">
-                    <input type="text" name="code" class="form-control" placeholder="{{ 'الكود' if lang == 'ar' else 'Code' }}" required>
+                    {{ form.code(class_='form-control', placeholder=('الكود' if lang == 'ar' else 'Code')) }}
                 </div>
                 <div class="col-md-2">
-                    <input type="text" name="name" class="form-control" placeholder="{{ 'الاسم' if lang == 'ar' else 'Name' }}" required>
+                    {{ form.name(class_='form-control', placeholder=('الاسم' if lang == 'ar' else 'Name')) }}
                 </div>
                 <div class="col-md-2">
-                    <input type="text" name="job_title" class="form-control" placeholder="{{ 'المسمى الوظيفي' if lang == 'ar' else 'Job Title' }}">
+                    {{ form.job_title(class_='form-control', placeholder=('المسمى الوظيفي' if lang == 'ar' else 'Job Title')) }}
                 </div>
                 <div class="col-md-2">
-                    <input type="text" name="department" class="form-control" placeholder="{{ 'القسم' if lang == 'ar' else 'Department' }}">
+                    {{ form.department(class_='form-select') }}
                 </div>
                 <div class="col-md-2">
-                    <input type="text" name="phone" class="form-control" placeholder="{{ 'الهاتف' if lang == 'ar' else 'Phone' }}">
+                    {{ form.phone(class_='form-control', placeholder=('الهاتف' if lang == 'ar' else 'Phone')) }}
                 </div>
                 <div class="col-md-2">
-                    <input type="email" name="email" class="form-control" placeholder="{{ 'البريد الإلكتروني' if lang == 'ar' else 'Email' }}">
+                    {{ form.email(class_='form-control', placeholder=('البريد الإلكتروني' if lang == 'ar' else 'Email')) }}
+                </div>
+                <div class="col-md-2">
+                    {{ form.salary(class_='form-control', placeholder=('الراتب' if lang == 'ar' else 'Salary')) }}
                 </div>
                 <div class="col-md-1">
-                    <select name="active" class="form-select">
-                        <option value="1">{{ 'نشط' if lang == 'ar' else 'Active' }}</option>
-                        <option value="0">{{ 'غير نشط' if lang == 'ar' else 'Inactive' }}</option>
-                    </select>
+                    {{ form.active(class_='form-select') }}
                 </div>
                 <div class="col-md-1">
                     <button class="btn bg-theme w-100" type="submit"><i class="bi bi-plus-lg"></i> {{ 'إضافة' if lang == 'ar' else 'Add' }}</button>
@@ -92,6 +91,8 @@
                         <th>{{ 'الهاتف' if lang == 'ar' else 'Phone' }}</th>
                         <th>{{ 'البريد الإلكتروني' if lang == 'ar' else 'Email' }}</th>
                         <th>{{ 'نشط' if lang == 'ar' else 'Active' }}</th>
+                        <th>{{ 'الراتب' if lang == 'ar' else 'Salary' }}</th>
+                        <th>{{ 'الإجراءات' if lang == 'ar' else 'Actions' }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -99,12 +100,21 @@
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td>{{ emp.code }}</td>
-                        <td>{{ emp.name }}</td>
+                        <td><a href="/employee/{{ emp.id }}">{{ emp.name }}</a></td>
                         <td>{{ emp.job_title }}</td>
                         <td>{{ emp.department }}</td>
                         <td>{{ emp.phone }}</td>
                         <td>{{ emp.email }}</td>
                         <td>{{ 'نعم' if emp.active else 'لا' }}</td>
+                        <td>{{ '{:,.2f}'.format(emp.salary) }} ج.م</td>
+                        <td>
+                            <a href="/employees/edit/{{ emp.id }}" class="btn btn-sm btn-warning">{{ 'تعديل' if lang == 'ar' else 'Edit' }}</a>
+                            <a href="/admin/permissions#usersTab" class="btn btn-sm btn-info">{{ 'تعديل الصلاحية' if lang == 'ar' else 'Edit Role' }}</a>
+                            <form method="POST" action="/employees/delete/{{ emp.id }}" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
+                                {{ form.csrf_token }}
+                                <button type="submit" class="btn btn-sm btn-danger">{{ 'حذف' if lang == 'ar' else 'Delete' }}</button>
+                            </form>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

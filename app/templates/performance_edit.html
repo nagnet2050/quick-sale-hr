@@ -5,7 +5,7 @@
     <div class="col-8">
         <h2 class="theme-color">{{ 'تعديل تقييم الموظف' if lang == 'ar' else 'Edit Employee Evaluation' }}</h2>
         <form method="POST">
-            {{ csrf_token() }}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="mb-3">
                 <label class="form-label">{{ 'الموظف' if lang == 'ar' else 'Employee' }}</label>
                 <select name="employee_id" class="form-select">

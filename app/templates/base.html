@@ -23,15 +23,38 @@
         </a>
         <div class="d-flex">
             <div class="me-3">
-                <a href="/dashboard" class="btn btn-light me-2">{{ 'Dashboard' if lang != 'ar' else 'لوحة التحكم' }}</a>
-                <a href="/employees" class="btn btn-light me-2">{{ 'Employees' if lang != 'ar' else 'الموظفين' }}</a>
-                <a href="/attendance" class="btn btn-light me-2">{{ 'Attendance' if lang != 'ar' else 'الحضور' }}</a>
-                <a href="/payroll" class="btn btn-light me-2">{{ 'Payroll' if lang != 'ar' else 'الرواتب' }}</a>
-                <a href="/performance" class="btn btn-light me-2">{{ 'Performance' if lang != 'ar' else 'الأداء' }}</a>
-                <a href="/leave" class="btn btn-light me-2">{{ 'Leaves' if lang != 'ar' else 'الإجازات' }}</a>
-                <a href="/reports" class="btn btn-light me-2">{{ 'Reports' if lang != 'ar' else 'التقارير' }}</a>
-                {% if current_user.is_authenticated and current_user.role == 'admin' %}
-                <a href="/admin/audit" class="btn btn-light me-2">{{ 'Audit' if lang != 'ar' else 'سجل التدقيق' }}</a>
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard" class="btn btn-light me-2">{{ 'لوحة التحكم' if lang == 'ar' else 'Dashboard' }}</a>
+                    {% if current_user.role in ['manager','admin'] %}
+                        <a href="/employees" class="btn btn-light me-2">{{ 'الموظفين' if lang == 'ar' else 'Employees' }}</a>
+                        <a href="/attendance" class="btn btn-light me-2">{{ 'الحضور' if lang == 'ar' else 'Attendance' }}</a>
+                    {% else %}
+                        <a href="/ess" class="btn btn-light me-2">{{ 'بوابة الموظف' if lang == 'ar' else 'ESS' }}</a>
+                        <a href="/employee/{{ session.get('employee_id') or '' }}" class="btn btn-light me-2">{{ 'ملفي' if lang == 'ar' else 'My Profile' }}</a>
+                    {% endif %}
+                    {% if current_user.role in ['manager', 'admin'] %}
+                        <a href="/employees/passwords" class="btn btn-light me-2">
+                            <i class="fas fa-key"></i> {{ 'كلمات المرور' if lang == 'ar' else 'Passwords' }}
+                        </a>
+                        <a href="/payroll" class="btn btn-light me-2">{{ 'الرواتب' if lang == 'ar' else 'Payroll' }}</a>
+                        <a href="/performance" class="btn btn-light me-2">{{ 'الأداء' if lang == 'ar' else 'Performance' }}</a>
+                        <a href="/leave" class="btn btn-light me-2">{{ 'الإجازات' if lang == 'ar' else 'Leave' }}</a>
+                        <a href="/reports" class="btn btn-light me-2">{{ 'التقارير' if lang == 'ar' else 'Reports' }}</a>
+                        <a href="/attendance/reports/dashboard" class="btn btn-info me-2">
+                            <i class="fas fa-chart-line"></i> {{ 'تقارير الحضور' if lang == 'ar' else 'Attendance Reports' }}
+                        </a>
+                    {% endif %}
+                    {% if current_user.role == 'admin' %}
+                        <a href="/admin/permissions" class="btn btn-warning me-2">
+                            <i class="fas fa-shield-alt"></i> {{ 'الصلاحيات' if lang == 'ar' else 'Permissions' }}
+                        </a>
+                        <a href="/admin/audit" class="btn btn-light me-2">{{ 'سجل التدقيق' if lang == 'ar' else 'Audit Log' }}</a>
+                    {% endif %}
+                    <a href="{{ url_for('support_hub.support_hub') }}" class="btn btn-warning me-2"><i class="bi bi-life-preserver"></i> {{ 'الدعم والمتابعة' if lang == 'ar' else 'Support' }}</a>
+                    
+                    {% if current_user.role in ['manager', 'admin'] %}
+                        <a href="/whatsapp/chat" class="btn btn-success me-2"><i class="bi bi-whatsapp"></i> {{ 'واتساب' if lang == 'ar' else 'WhatsApp' }}</a>
+                    {% endif %}
                 {% endif %}
             </div>
             <div>
@@ -42,16 +65,51 @@
     </div>
 </nav>
 <div class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }}">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
+        {% block content %}{% endblock %}
+        <!-- Global Toasts container -->
+        <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;"></div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        <script>
+        window.__flashes__ = {{ messages|tojson|safe }};
+        </script>
+        {% endwith %}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/static/js/main.js"></script>
+<script src="/static/js/toasts.js"></script>
+<script>
+// Render flashed messages as toasts
+(function(){
+    const map = { danger:'danger', error:'danger', warning:'warning', success:'success', info:'info' };
+    (window.__flashes__||[]).forEach(function(item){
+        const cat = item[0]; const msg = item[1];
+        if (window.showToast && msg){ window.showToast(msg, map[cat]||'info'); }
+    });
+})();
+</script>
+<script>
+// Presence monitoring: update every 30 minutes only (no activity tracking)
+const current_user_id = "{{ current_user.id if current_user.is_authenticated else '' }}";
+const PRESENCE_INTERVAL = 1800000; // 30 minutes in milliseconds (30 * 60 * 1000)
+
+function updatePresence() {
+    if (!current_user_id) return;
+    
+    fetch('/api/presence/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: current_user_id })
+    }).catch(err => {
+        // Silently handle errors to avoid console spam
+        console.debug('Presence update failed:', err);
+    });
+}
+
+// Update every 30 minutes - FIXED INTERVAL ONLY
+setInterval(updatePresence, PRESENCE_INTERVAL);
+
+// Initial update when page loads
+updatePresence();
+</script>
 </body>
 </html>

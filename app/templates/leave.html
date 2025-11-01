@@ -5,13 +5,22 @@
     <div class="col-12 mb-3">
         <h2 class="theme-color">{{ 'إدارة الإجازات' if lang=='ar' else 'Leave Management' }}</h2>
         <form method="POST" class="row g-3 mb-4">
-            {{ csrf_token() }}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="col-md-3">
                 <label class="form-label">{{ 'نوع الإجازة' if lang=='ar' else 'Leave Type' }}</label>
-                <select name="leave_type" class="form-select">
-                    <option value="Annual">{{ 'سنوية' if lang=='ar' else 'Annual' }}</option>
-                    <option value="Sick">{{ 'مرضية' if lang=='ar' else 'Sick' }}</option>
-                    <option value="Casual">{{ 'عرضية' if lang=='ar' else 'Casual' }}</option>
+                <select name="leave_type" class="form-select" required>
+                    {% set opts = leave_types or {
+                        'annual': {'label_ar':'سنوية'},
+                        'weekly': {'label_ar':'اسبوعية'},
+                        'holidays': {'label_ar':'أعياد'},
+                        'casual': {'label_ar':'عارضة'},
+                        'sick': {'label_ar':'مرضي'},
+                        'unpaid': {'label_ar':'غير مدفوعة'},
+                        'paid': {'label_ar':'مدفوعة'}
+                    } %}
+                    {% for code, meta in opts.items() %}
+                    <option value="{{ code }}">{{ meta.label_ar }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="col-md-3">
@@ -22,10 +31,45 @@
                 <label class="form-label">{{ 'إلى تاريخ' if lang=='ar' else 'End Date' }}</label>
                 <input type="date" name="end_date" class="form-control" required>
             </div>
+            <div class="col-md-2">
+                <label class="form-label">{{ 'سبب (اختياري)' if lang=='ar' else 'Reason (optional)' }}</label>
+                <input type="text" name="reason" class="form-control" placeholder="—">
+            </div>
             <div class="col-md-1 align-self-end">
                 <button class="btn bg-theme" type="submit">{{ 'إرسال' if lang=='ar' else 'Submit' }}</button>
             </div>
         </form>
+
+        {% if balance %}
+        <div class="row g-3 mb-3">
+            <div class="col-md-3 col-6">
+                <div class="card shadow-sm border-0 text-center">
+                    <div class="card-body">
+                        <div class="text-primary">{{ 'رصيد السنوية المتاح' if lang=='ar' else 'Annual Available' }}</div>
+                        <div class="display-6 fw-bold">{{ balance.annual_available }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card shadow-sm border-0 text-center">
+                    <div class="card-body">
+                        <div class="text-success">{{ 'رصيد العارضة المتاح' if lang=='ar' else 'Casual Available' }}</div>
+                        <div class="display-6 fw-bold">{{ balance.casual_available }}</div>
+                    </div>
+                </div>
+            </div>
+            {% if balance.sick_paid_remaining is not none %}
+            <div class="col-md-3 col-6">
+                <div class="card shadow-sm border-0 text-center">
+                    <div class="card-body">
+                        <div class="text-info">{{ 'المتبقي المرضي المدفوع' if lang=='ar' else 'Paid Sick Remaining' }}</div>
+                        <div class="display-6 fw-bold">{{ balance.sick_paid_remaining }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
 
         <h4>{{ 'طلبات الإجازات' if lang=='ar' else 'Leave Requests' }}</h4>
         <table class="table table-bordered table-striped">
@@ -46,45 +90,29 @@
                     <td>{{ l.employee }}</td>
                     <td>{{ l.leave_type }}</td>
                     <td>{{ l.start_date }} - {{ l.end_date }}</td>
-                    <td>{{ l.status }}</td>
+                    <td>
+                        {% if l.status == 'Approved' %}
+                        <span class="badge bg-success">{{ 'مقبولة' if lang=='ar' else 'Approved' }}</span>
+                        {% elif l.status == 'Rejected' %}
+                        <span class="badge bg-danger">{{ 'مرفوضة' if lang=='ar' else 'Rejected' }}</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ 'قيد المراجعة' if lang=='ar' else 'Pending' }}</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if current_user.role in ['admin','manager'] %}
                         <form method="POST" action="/leave/approve/{{ l.id }}" style="display:inline">
-                            {{ csrf_token() }}
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button class="btn btn-sm btn-success">{{ 'قبول' if lang=='ar' else 'Approve' }}</button>
                         </form>
                         <form method="POST" action="/leave/reject/{{ l.id }}" style="display:inline">
-                            {{ csrf_token() }}
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button class="btn btn-sm btn-danger">{{ 'رفض' if lang=='ar' else 'Reject' }}</button>
                         </form>
                         {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endblock %}
-{% extends 'base.html' %}
-{% block title %}{{ 'الإجازات' if lang == 'ar' else 'Leave' }}{% endblock %}
-{% block content %}
-<div class="row">
-    <div class="col-12 mb-3">
-        <h2 class="theme-color">{{ 'إدارة الإجازات' if lang == 'ar' else 'Leave Management' }}</h2>
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>{{ 'الموظف' if lang == 'ar' else 'Employee' }}</th>
-                    <th>{{ 'نوع الإجازة' if lang == 'ar' else 'Leave Type' }}</th>
-                    <th>{{ 'تاريخ البداية' if lang == 'ar' else 'Start Date' }}</th>
-                    <th>{{ 'تاريخ النهاية' if lang == 'ar' else 'End Date' }}</th>
-                    <th>{{ 'الحالة' if lang == 'ar' else 'Status' }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Leave data here -->
             </tbody>
         </table>
     </div>

@@ -3,8 +3,11 @@ Flask-Login
 Flask-WTF
 Flask-SQLAlchemy
 Flask-Babel
+Flask-Migrate
 Werkzeug
 gunicorn
 requests
 psycopg2-binary
 bootstrap-flask
+python-dotenv
+python-dateutil

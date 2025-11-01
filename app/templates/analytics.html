@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}لوحة تحكم التحليلات{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="theme-color fw-bold"><i class="bi bi-graph-up"></i> {{ 'لوحة تحكم التحليلات' if lang=='ar' else 'Analytics Dashboard' }}</h2>
+        <div class="d-flex gap-2">
+            <input type="number" min="1" max="12" id="aMonth" class="form-control form-control-sm w-auto" placeholder="{{ 'شهر' if lang=='ar' else 'Month' }}">
+            <input type="number" min="2000" max="2100" id="aYear" class="form-control form-control-sm w-auto" placeholder="{{ 'سنة' if lang=='ar' else 'Year' }}">
+            <button class="btn btn-sm bg-theme" onclick="loadSummary()"><i class="bi bi-arrow-repeat"></i> {{ 'تحديث' if lang=='ar' else 'Refresh' }}</button>
+        </div>
+    </div>
+
+    <div class="row g-3" id="cards">
+        <div class="col-md-3 col-6">
+            <div class="card shadow-sm border-0 text-center">
+                <div class="card-body">
+                    <div class="text-success fs-1"><i class="bi bi-cash-coin"></i></div>
+                    <div class="small text-muted">{{ 'إجمالي صافي الرواتب' if lang=='ar' else 'Total Net' }}</div>
+                    <div id="cNet" class="display-6 fw-bold">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card shadow-sm border-0 text-center">
+                <div class="card-body">
+                    <div class="text-warning fs-1"><i class="bi bi-bank"></i></div>
+                    <div class="small text-muted">{{ 'إجمالي خصم السلف' if lang=='ar' else 'Loan Deductions' }}</div>
+                    <div id="cLoan" class="display-6 fw-bold">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card shadow-sm border-0 text-center">
+                <div class="card-body">
+                    <div class="text-danger fs-1"><i class="bi bi-person-dash"></i></div>
+                    <div class="small text-muted">{{ 'إجمالي أيام الغياب' if lang=='ar' else 'Absence Days' }}</div>
+                    <div id="cAbs" class="display-6 fw-bold">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card shadow-sm border-0 text-center">
+                <div class="card-body">
+                    <div class="text-info fs-1"><i class="bi bi-alarm"></i></div>
+                    <div class="small text-muted">{{ 'إجمالي دقائق التأخير' if lang=='ar' else 'Late Minutes' }}</div>
+                    <div id="cLate" class="display-6 fw-bold">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+async function loadSummary() {
+    const m = parseInt(document.getElementById('aMonth').value || '0', 10) || undefined;
+    const y = parseInt(document.getElementById('aYear').value || '0', 10) || undefined;
+    let url = '/api/analytics/payroll-summary';
+    const qs = [];
+    if (m) qs.push('month='+m);
+    if (y) qs.push('year='+y);
+    if (qs.length) url += '?' + qs.join('&');
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (res.ok && data.success) {
+            document.getElementById('cNet').innerText = data.total_net.toFixed(2);
+            document.getElementById('cLoan').innerText = data.total_loan_deduction.toFixed(2);
+            document.getElementById('cAbs').innerText = String(data.total_absence_days);
+            document.getElementById('cLate').innerText = String(data.total_late_minutes);
+        } else {
+            throw new Error(data.error || 'Error');
+        }
+    } catch (e) {
+        if (window.Swal) {
+            Swal.fire({ icon: 'error', title: '{{ "خطأ" if lang=="ar" else "Error" }}', text: String(e) });
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => loadSummary());
+</script>
+{% endblock %}

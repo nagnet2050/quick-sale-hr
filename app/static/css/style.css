@@ -3,3 +3,27 @@ body.ltr { direction: ltr; }
 .theme-color { color: #0D6EFD; }
 .bg-theme { background-color: #0D6EFD !important; }
 .logo { height: 48px; }
+
+/* ضبط حجم مربعات الاختيار والسويتش لتكون أصغر وأكثر احترافية */
+.form-check-input {
+	width: 0.95rem;
+	height: 0.95rem;
+}
+.form-switch .form-check-input {
+	transform: scale(0.9);
+	margin-top: 0.15rem;
+}
+.form-check-label {
+	font-size: 0.95rem;
+}
+
+/* تحسين بطاقات الإحصائيات */
+.card.shadow-sm.border-0 .card-body {
+	padding: 1.25rem 1rem;
+}
+.display-6.fw-bold { line-height: 1.1; }
+
+/* أزرار الإجراءات السريعة في الحضور */
+.quick-actions .btn {
+	min-width: 160px;
+}

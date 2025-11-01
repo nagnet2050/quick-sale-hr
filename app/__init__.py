@@ -6,94 +6,28 @@ from flask_wtf.csrf import CSRFProtect
 from .config import Config
 import sqlite3
 import os
+from flask_migrate import Migrate
 
 # Initialize extensions
 csrf = CSRFProtect()
-db = SQLAlchemy()
+db = SQLAlchemy()  # تعريف الكائن db
 login_manager = LoginManager()
 babel = Babel()
-
-# --- Migration logic ---
-TABLES = {
-    'employee': {
-        'salary': 'FLOAT DEFAULT 0.0',
-        'code': 'VARCHAR(32)',
-        'name': 'VARCHAR(128)',
-        'job_title': 'VARCHAR(128)',
-        'department': 'VARCHAR(128)',
-        'phone': 'VARCHAR(32)',
-        'email': 'VARCHAR(128)',
-        'active': 'BOOLEAN DEFAULT 1'
-    },
-    'payroll': {
-        'basic': 'FLOAT DEFAULT 0.0',
-        'allowances': 'FLOAT DEFAULT 0.0',
-        'bonus': 'FLOAT DEFAULT 0.0',
-        'overtime': 'FLOAT DEFAULT 0.0',
-        'deductions': 'FLOAT DEFAULT 0.0',
-        'tax': 'FLOAT DEFAULT 0.0',
-        'insurance': 'FLOAT DEFAULT 0.0',
-        'net': 'FLOAT DEFAULT 0.0',
-        'period_start': 'DATE',
-        'period_end': 'DATE',
-        'generated_by': 'INTEGER',
-        'generated_at': 'DATETIME',
-        'status': "VARCHAR(32) DEFAULT 'unpaid'",
-        'employee_id': 'INTEGER'
-    },
-    'leave': {
-        'requested_at': 'DATETIME',
-        'approved_by': 'INTEGER',
-        'approved_at': 'DATETIME'
-    },
-    'performance': {
-        'created_by': 'INTEGER',
-        'created_at': 'DATETIME',
-        'updated_at': 'DATETIME'
-    },
-    'attendance': {
-        'timestamp': 'DATETIME',
-        'location': 'VARCHAR(128)'
-    },
-    'user': {
-        'username': 'VARCHAR(64)',
-        'password_hash': 'VARCHAR(128)',
-        'role': 'VARCHAR(32) DEFAULT "user"'
-    }
-}
-
-def add_missing_columns(db_path, table, columns):
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    cur.execute(f"PRAGMA table_info({table})")
-    existing = {row[1] for row in cur.fetchall()}
-    for col, coltype in columns.items():
-        if col not in existing:
-            try:
-                cur.execute(f"ALTER TABLE {table} ADD COLUMN {col} {coltype}")
-            except Exception as e:
-                print(f"Error adding column {col} to {table}: {e}")
-    conn.commit()
-    conn.close()
-
-def auto_db_migrate():
-    db_path = os.environ.get('DB_PATH', 'hrcloud.db')
-    if not os.path.exists(db_path):
-        print(f"Database file {db_path} not found.")
-        return
-    for table, columns in TABLES.items():
-        add_missing_columns(db_path, table, columns)
-    print("Auto DB migration done.")
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Initialize extensions
     csrf.init_app(app)
-    db.init_app(app)
+    db.init_app(app)  # Properly initialize the db object
     login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'  # صفحة تسجيل الدخول الرئيسية
     babel.init_app(app)
+
+    # Initialize Flask-Migrate
+    migrate = Migrate(app, db)
 
     # Import and register blueprints/routes
     from app.routes.auth import auth_bp
@@ -108,8 +42,37 @@ def create_app():
     from app.routes.leave import leave_bp
     from app.routes.landing import landing_bp
     from app.routes.employee_login import employee_login_bp
+    from app.routes.support import support_bp
+    from app.routes.lang import lang_bp
+    from app.routes.ess import ess_bp
+    from app.routes.mss import mss_bp
+    from app.routes.rewards import rewards_bp
+    from app.routes.surveys import surveys_bp
+    from app.routes.lms import lms_bp
+    from app.routes.succession import succession_bp
+    from app.routes.ats import ats_bp
+    from app.routes.analytics import analytics_bp
+    from app.routes.compensation import compensation_bp
+    from app.routes.external_workforce import external_workforce_bp
+    from app.routes.ehs import ehs_bp
+    from app.routes.ai import ai_bp
+    from app.routes.presence import presence_bp
+    from app.routes.presence_status import presence_status_bp
+    from app.routes.employee_profile import employee_profile_bp
+    from app.routes.client_support import client_support_bp
     from app.routes.support_ticket import support_ticket_bp
+    from app.routes.support_hub import support_hub_bp
+    from app.routes.permissions import permissions_bp  # نظام الصلاحيات المتقدم
+    from app.routes.attendance_reports import attendance_reports_bp  # تقارير الحضور المتقدمة
+    # from app.routes.whatsapp import whatsapp_bp  # استُبدل بـ whatsapp_api
+    from app.routes.whatsapp_api import whatsapp_bp as whatsapp_api_bp
+    from app.routes.user import user_bp
+    app.register_blueprint(auth_bp)
     app.register_blueprint(employees_bp)
+    app.register_blueprint(user_bp)
+    app.register_blueprint(permissions_bp)  # نظام الصلاحيات
+    app.register_blueprint(attendance_reports_bp)  # تقارير الحضور
+    app.register_blueprint(whatsapp_api_bp)  # WhatsApp API الجديد
     app.register_blueprint(attendance_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(settings_bp)
@@ -120,13 +83,31 @@ def create_app():
     app.register_blueprint(leave_bp)
     app.register_blueprint(landing_bp)
     app.register_blueprint(employee_login_bp)
+    app.register_blueprint(support_bp)
+    app.register_blueprint(lang_bp)
+    app.register_blueprint(ess_bp)
+    app.register_blueprint(mss_bp)
+    app.register_blueprint(rewards_bp)
+    app.register_blueprint(surveys_bp)
+    app.register_blueprint(lms_bp)
+    app.register_blueprint(succession_bp)
+    app.register_blueprint(ats_bp)
+    app.register_blueprint(analytics_bp)
+    app.register_blueprint(compensation_bp)
+    app.register_blueprint(external_workforce_bp)
+    app.register_blueprint(ehs_bp)
+    app.register_blueprint(ai_bp)
+    app.register_blueprint(presence_bp)
+    app.register_blueprint(presence_status_bp)
+    app.register_blueprint(employee_profile_bp)
+    app.register_blueprint(client_support_bp)
     app.register_blueprint(support_ticket_bp)
+    app.register_blueprint(support_hub_bp)
+    # whatsapp_bp القديم تم استبداله بـ whatsapp_api_bp (مُسجّل في السطر 72)
 
-        # Run DB migration automatically once per app startup
-        @app.before_request
-        def run_auto_migrate():
-            if not hasattr(app, '_db_migrated'):
-                auto_db_migrate()
-                app._db_migrated = True
+    # تشغيل التحديث التلقائي لقاعدة البيانات
+    with app.app_context():
+        from app.db_manager import auto_migrate_database
+        auto_migrate_database()
 
     return app

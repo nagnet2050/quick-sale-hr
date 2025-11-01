@@ -1,24 +1,27 @@
 {% extends 'base.html' %}
 {% block title %}دخول الموظفين{% endblock %}
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-4">
-        <div class="card p-4">
-            <h3 class="mb-3 text-center">دخول الموظفين</h3>
-            {% if error %}
-            <div class="alert alert-danger">{{ error }}</div>
-            {% endif %}
-            <form method="POST">
-                <div class="mb-3">
-                    <label for="username" class="form-label">اسم المستخدم</label>
-                    <input type="text" class="form-control" id="username" name="username" required>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-theme text-white text-center">
+                    <h4>{{ 'تسجيل دخول الموظف' if lang == 'ar' else 'Employee Login' }}</h4>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">كلمة المرور</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">{{ 'اسم الموظف' if lang == 'ar' else 'Employee Name' }}</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">{{ 'كلمة المرور' if lang == 'ar' else 'Password' }}</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <button type="submit" class="btn bg-theme w-100">{{ 'دخول' if lang == 'ar' else 'Login' }}</button>
+                    </form>
                 </div>
-                <button type="submit" class="btn bg-theme w-100">دخول</button>
-            </form>
+            </div>
         </div>
     </div>
 </div>

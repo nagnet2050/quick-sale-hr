@@ -1,10 +1,16 @@
-
 {% extends 'base.html' %}
 {% block title %}{{ 'الحضور' if lang == 'ar' else 'Attendance' }}{% endblock %}
 {% block content %}
 <div class="row">
     <div class="col-12 mb-4">
-        <h2 class="theme-color fw-bold text-center"><i class="bi bi-calendar-check"></i> {{ 'الحضور والانصراف' if lang == 'ar' else 'Attendance & Check-in' }}</h2>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="theme-color fw-bold"><i class="bi bi-calendar-check"></i> {{ 'الحضور والانصراف' if lang == 'ar' else 'Attendance & Check-in' }}</h2>
+            {% if current_user.has_permission(module='admin', action='settings') or current_user.role == 'admin' %}
+            <a href="{{ url_for('attendance.attendance_settings_page') }}" class="btn btn-outline-primary">
+                <i class="fas fa-cog"></i> {{ 'إعدادات الحضور' if lang == 'ar' else 'Attendance Settings' }}
+            </a>
+            {% endif %}
+        </div>
     </div>
     <!-- Cards Row -->
     <div class="row g-4 mb-4">
@@ -38,10 +44,47 @@
     </div>
     <!-- تسجيل الحضور والانصراف -->
     <div class="card mb-4">
-        <div class="card-header bg-theme text-white fw-bold"><i class="bi bi-calendar-plus"></i> {{ 'تسجيل الحضور/الانصراف' if lang == 'ar' else 'Check-in/Check-out' }}</div>
+        <div class="card-header bg-theme text-white fw-bold d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-calendar-plus"></i> {{ 'تسجيل الحضور/الانصراف' if lang == 'ar' else 'Check-in/Check-out' }}</span>
+            <div class="quick-actions d-none d-md-flex gap-2">
+                <button type="button" class="btn btn-success" onclick="getLocation('حضور')">
+                    <i class="bi bi-box-arrow-in-right"></i> {{ 'حضور سريع' if lang == 'ar' else 'Quick Check-in' }}
+                </button>
+                <button type="button" class="btn btn-danger" onclick="getLocation('انصراف')">
+                    <i class="bi bi-box-arrow-right"></i> {{ 'انصراف سريع' if lang == 'ar' else 'Quick Check-out' }}
+                </button>
+            </div>
+        </div>
         <div class="card-body text-center">
-            <button class="btn bg-theme me-2" id="checkin-btn"><i class="bi bi-box-arrow-in-right"></i> {{ 'تسجيل دخول' if lang == 'ar' else 'Check-in' }}</button>
-            <button class="btn btn-outline-primary" id="checkout-btn"><i class="bi bi-box-arrow-right"></i> {{ 'تسجيل خروج' if lang == 'ar' else 'Check-out' }}</button>
+            <form id="attendance-form" method="POST" action="/api/attendance">
+                <div class="mb-3 text-start">
+                    <label for="employee_id" class="form-label">{{ 'الموظف' if lang == 'ar' else 'Employee' }}</label>
+                    {% if employees|length == 1 %}
+                        <!-- موظف واحد فقط - عرض اسمه فقط -->
+                        <input type="text" class="form-control" value="{{ employees[0].full_name or employees[0].name }}" readonly>
+                        <input type="hidden" id="employee_id" name="employee_id" value="{{ employees[0].id }}">
+                    {% else %}
+                        <!-- عدة موظفين - عرض قائمة اختيار -->
+                        <select id="employee_id" name="employee_id" class="form-select" required>
+                            {% for employee in employees %}
+                            <option value="{{ employee.id }}">{{ employee.full_name or employee.name }}</option>
+                            {% endfor %}
+                        </select>
+                    {% endif %}
+                </div>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-6 text-start">
+                        <label for="status" class="form-label">{{ 'الحالة' if lang == 'ar' else 'Status' }}</label>
+                        <select id="status" name="status" class="form-select" required>
+                            <option value="in">{{ 'حضور' if lang == 'ar' else 'Check-in' }}</option>
+                            <option value="out">{{ 'انصراف' if lang == 'ar' else 'Check-out' }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 text-start">
+                        <button type="submit" class="btn bg-theme w-100"><i class="bi bi-calendar-plus"></i> {{ 'تسجيل' if lang == 'ar' else 'Record' }}</button>
+                    </div>
+                </div>
+            </form>
             <div id="gps-status" class="mt-3"></div>
         </div>
     </div>
@@ -49,34 +92,119 @@
     <div class="card">
         <div class="card-header bg-theme text-white fw-bold"><i class="bi bi-table"></i> {{ 'سجل الحضور' if lang == 'ar' else 'Attendance Log' }}</div>
         <div class="card-body p-0">
+            <form class="row g-2 p-3" method="GET">
+                <div class="col-md-4">
+                    <input type="text" name="search_name" class="form-control" placeholder="{{ 'بحث باسم الموظف' if lang == 'ar' else 'Search by name' }}" value="{{ request.args.get('search_name', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <input type="date" name="search_date" class="form-control" value="{{ request.args.get('search_date', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i> {{ 'بحث' if lang == 'ar' else 'Search' }}</button>
+                </div>
+                <div class="col-md-3">
+                    <a href="/attendance/export" class="btn btn-outline-success w-100"><i class="bi bi-file-earmark-arrow-down"></i> {{ 'تصدير CSV' if lang == 'ar' else 'Export CSV' }}</a>
+                    <a href="/attendance-map" class="btn btn-outline-info w-100 mt-2"><i class="bi bi-geo-alt"></i> {{ 'عرض الخريطة' if lang == 'ar' else 'Show Map' }}</a>
+                    {% if current_user.has_permission(module='attendance', action='edit') %}
+                    <div class="input-group mt-2">
+                        <input type="file" class="form-control" id="csvFile" accept=".csv">
+                        <button class="btn btn-outline-primary" type="button" onclick="importCsv()"><i class="bi bi-upload"></i> {{ 'استيراد' if lang=='ar' else 'Import' }}</button>
+                    </div>
+                    <small class="text-muted">CSV: date, employee_id/code, check_in, check_out</small>
+                    {% endif %}
+                </div>
+            </form>
             <div class="table-responsive">
             <table class="table table-bordered table-striped mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
+                        <th>{{ 'الموظف' if lang == 'ar' else 'Employee' }}</th>
                         <th>{{ 'العملية' if lang == 'ar' else 'Action' }}</th>
                         <th>{{ 'الوقت' if lang == 'ar' else 'Time' }}</th>
                         <th>{{ 'الموقع' if lang == 'ar' else 'Location' }}</th>
+                        {% if current_user.has_permission(module='attendance', action='delete') %}
+                        <th>{{ 'إجراءات' if lang == 'ar' else 'Actions' }}</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
-                    {% for att in attendance_log %}
+                    {% for log in attendance_log %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ att.action }}</td>
-                        <td>{{ att.time }}</td>
-                        <td>{{ att.address }}</td>
+                        <td>{{ log.name }}</td>
+                        <td>{{ log.action }}</td>
+                        <td>{{ log.time }}</td>
+                        <td>{{ log.address }}</td>
+                        {% if current_user.has_permission(module='attendance', action='delete') %}
+                        <td>
+                            <form action="{{ url_for('attendance.delete_attendance', attendance_id=log.id) }}" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا السجل؟');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">{{ 'لا توجد سجلات لعرضها' if lang == 'ar' else 'No records to display' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
             </div>
         </div>
-    </div>
 </div>
 <script>
-function getLocation(action) {
+// الحصول على MAC Address (ملاحظة: JavaScript لا يمكنها الوصول المباشر لـ MAC)
+// سنستخدم fingerprinting للجهاز بدلاً من ذلك
+async function getDeviceFingerprint() {
+    try {
+        // جمع معلومات الجهاز
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillText('Device fingerprint', 2, 2);
+        const canvasFingerprint = canvas.toDataURL();
+        
+        const deviceInfo = {
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            platform: navigator.platform,
+            screenResolution: `${screen.width}x${screen.height}`,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            canvasFingerprint: canvasFingerprint.substring(0, 50)
+        };
+        
+        // إنشاء fingerprint فريد
+        const fingerprintString = JSON.stringify(deviceInfo);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprintString));
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        // تحويله لشكل MAC Address (للعرض فقط)
+        const macLike = hashHex.substring(0, 12).match(/.{1,2}/g).join(':');
+        
+        return {
+            mac_address: macLike,
+            device_info: `${navigator.platform} - ${navigator.userAgent.substring(0, 100)}`
+        };
+    } catch (error) {
+        console.error('Error generating device fingerprint:', error);
+        return {
+            mac_address: 'unknown',
+            device_info: navigator.userAgent.substring(0, 100)
+        };
+    }
+}
+
+async function getLocation(action) {
     if (navigator.geolocation) {
+        const deviceData = await getDeviceFingerprint();
+        
         navigator.geolocation.getCurrentPosition(function(position) {
             // Google Reverse Geocoding
             fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.coords.latitude},${position.coords.longitude}&key=AIzaSyC7OYfdpB1HU5Ui6YYDfCfOyXG4jDsea00`)
@@ -85,24 +213,105 @@ function getLocation(action) {
                 let address = geo.results[0]?.formatted_address || '';
                 fetch('/api/attendance', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({
                         action: action,
                         lat: position.coords.latitude,
                         lng: position.coords.longitude,
-                        address: address
+                        address: address,
+                        employee_id: document.getElementById('employee_id').value,
+                        mac_address: deviceData.mac_address,
+                        device_info: deviceData.device_info
                     })
                 }).then(res => res.json()).then(data => {
-                    document.getElementById('gps-status').innerText = data.status;
-                    window.location.reload();
+                    if (data.status === 'success') {
+                        document.getElementById('gps-status').innerHTML = `
+                            <div class="alert alert-success">${data.message}</div>
+                            ${data.verification_details ? `
+                                <div class="alert alert-info">
+                                    <small>
+                                        <strong>تفاصيل التحقق:</strong><br>
+                                        📍 الموقع: ${data.verification_details.location.message}<br>
+                                        ⏰ الوقت: ${data.verification_details.time.message}<br>
+                                        💻 الجهاز: ${data.verification_details.device.message}
+                                    </small>
+                                </div>
+                            ` : ''}
+                        `;
+                        setTimeout(() => window.location.reload(), 2000);
+                    } else {
+                        document.getElementById('gps-status').innerHTML = `
+                            <div class="alert alert-danger">${data.message}</div>
+                            ${data.verification_details ? `
+                                <div class="alert alert-warning">
+                                    <small>
+                                        <strong>تفاصيل التحقق:</strong><br>
+                                        📍 الموقع: ${data.verification_details.location.verified ? '✓' : '✗'} ${data.verification_details.location.message}<br>
+                                        ⏰ الوقت: ${data.verification_details.time.verified ? '✓' : '✗'} ${data.verification_details.time.message}<br>
+                                        💻 الجهاز: ${data.verification_details.device.verified ? '✓' : '✗'} ${data.verification_details.device.message}
+                                    </small>
+                                </div>
+                            ` : ''}
+                        `;
+                    }
                 });
             });
+        }, function(error) {
+            document.getElementById('gps-status').innerHTML = `<div class="alert alert-danger">خطأ في الحصول على الموقع: ${error.message}</div>`;
         });
     } else {
-        document.getElementById('gps-status').innerText = "المتصفح لا يدعم تحديد الموقع";
+        document.getElementById('gps-status').innerHTML = '<div class="alert alert-danger">المتصفح لا يدعم تحديد الموقع</div>';
     }
 }
-document.getElementById('checkin-btn').onclick = function() { getLocation('حضور'); };
-document.getElementById('checkout-btn').onclick = function() { getLocation('انصراف'); };
+
+document.addEventListener('DOMContentLoaded', function() {
+    // اجعل نموذج التسجيل يستخدم GPS وJSON بدلاً من إرسال فورم عادي
+    const form = document.getElementById('attendance-form');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const status = document.getElementById('status')?.value || 'in';
+            const action = (status === 'in') ? 'حضور' : 'انصراف';
+            getLocation(action);
+        });
+    }
+});
+
+async function importCsv() {
+    const input = document.getElementById('csvFile');
+    if (!input || !input.files || input.files.length === 0) {
+        return alert('{{ "الرجاء اختيار ملف CSV" if lang=="ar" else "Please choose a CSV file" }}');
+    }
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    try {
+        const res = await fetch('/api/attendance/import', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+            const msg = `${data.created} {{ 'جديد' if lang=='ar' else 'created' }}, ${data.updated} {{ 'محدّث' if lang=='ar' else 'updated' }}`;
+            if (window.Swal) {
+                await Swal.fire({ icon: 'success', title: '{{ "تم" if lang=="ar" else "Done" }}', html: msg + (data.errors?.length ? '<br/>⚠️ {{ "أخطاء" if lang=="ar" else "Errors" }}: '+data.errors.length : '') });
+            } else {
+                alert(msg);
+            }
+            window.location.reload();
+        } else {
+            const msg = (data && data.message) ? data.message : 'Error';
+            if (window.Swal) {
+                Swal.fire({ icon: 'error', title: '{{ "خطأ" if lang=="ar" else "Error" }}', text: msg });
+            } else {
+                alert(msg);
+            }
+        }
+    } catch (e) {
+        if (window.Swal) {
+            Swal.fire({ icon: 'error', title: '{{ "خطأ" if lang=="ar" else "Error" }}', text: String(e) });
+        } else {
+            alert(String(e));
+        }
+    }
+}
 </script>
 {% endblock %}

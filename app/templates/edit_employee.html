@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'تعديل موظف' if lang == 'ar' else 'Edit Employee' }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card mt-4">
+            <div class="card-header bg-theme text-white fw-bold">
+                <i class="bi bi-pencil-square"></i> {{ 'تعديل بيانات الموظف' if lang == 'ar' else 'Edit Employee' }}
+            </div>
+            <div class="card-body">
+                <form method="POST" class="row g-2">
+                    {{ form.hidden_tag() }}
+                    <div class="col-md-2">
+                        {{ form.name(class_='form-control', placeholder=('الاسم' if lang == 'ar' else 'Name')) }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ form.job_title(class_='form-control', placeholder=('المسمى الوظيفي' if lang == 'ar' else 'Job Title')) }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ form.department(class_='form-select') }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ form.phone(class_='form-control', placeholder=('الهاتف' if lang == 'ar' else 'Phone')) }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ form.email(class_='form-control', placeholder=('البريد الإلكتروني' if lang == 'ar' else 'Email')) }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ form.active(class_='form-select') }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ form.salary(class_='form-control', placeholder=('الراتب' if lang == 'ar' else 'Salary')) }}
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn bg-theme w-100" type="submit"><i class="bi bi-save"></i> {{ 'حفظ التعديلات' if lang == 'ar' else 'Save Changes' }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

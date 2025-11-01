@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid" id="payrollManage">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-money-check-alt"></i> {{ 'Payroll Management' if session.lang == 'en' else 'إدارة الرواتب' }}</h2>
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="showGenerateBatch()">
+                <i class="fas fa-calendar-plus"></i> {{ 'Generate Monthly Batch' if session.lang == 'en' else 'إنشاء كشف شهري' }}
+            </button>
+            <button class="btn btn-success" onclick="showAddPayroll()">
+                <i class="fas fa-plus"></i> {{ 'Add Payroll' if session.lang == 'en' else 'إضافة راتب' }}
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">{{ 'Total Payrolls' if session.lang == 'en' else 'إجمالي الرواتب' }}</h6>
+                            <h3 class="mb-0" id="totalCount">0</h3>
+                        </div>
+                        <div class="bg-primary text-white rounded-circle p-3">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">{{ 'Total Gross' if session.lang == 'en' else 'الإجمالي الكلي' }}</h6>
+                            <h3 class="mb-0" id="totalGross">0.00</h3>
+                        </div>
+                        <div class="bg-success text-white rounded-circle p-3">
+                            <i class="fas fa-coins fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">{{ 'Total Deductions' if session.lang == 'en' else 'الخصومات الكلية' }}</h6>
+                            <h3 class="mb-0" id="totalDeductions">0.00</h3>
+                        </div>
+                        <div class="bg-danger text-white rounded-circle p-3">
+                            <i class="fas fa-minus-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">{{ 'Total Net' if session.lang == 'en' else 'الصافي الكلي' }}</h6>
+                            <h3 class="mb-0" id="totalNet">0.00</h3>
+                        </div>
+                        <div class="bg-info text-white rounded-circle p-3">
+                            <i class="fas fa-hand-holding-usd fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label>{{ 'Month' if session.lang == 'en' else 'الشهر' }}</label>
+                    <select class="form-select" id="filterMonth" onchange="loadPayrolls()">
+                        <option value="">{{ 'All' if session.lang == 'en' else 'الكل' }}</option>
+                        <option value="1">{{ 'January' if session.lang == 'en' else 'يناير' }}</option>
+                        <option value="2">{{ 'February' if session.lang == 'en' else 'فبراير' }}</option>
+                        <option value="3">{{ 'March' if session.lang == 'en' else 'مارس' }}</option>
+                        <option value="4">{{ 'April' if session.lang == 'en' else 'أبريل' }}</option>
+                        <option value="5">{{ 'May' if session.lang == 'en' else 'مايو' }}</option>
+                        <option value="6">{{ 'June' if session.lang == 'en' else 'يونيو' }}</option>
+                        <option value="7">{{ 'July' if session.lang == 'en' else 'يوليو' }}</option>
+                        <option value="8">{{ 'August' if session.lang == 'en' else 'أغسطس' }}</option>
+                        <option value="9">{{ 'September' if session.lang == 'en' else 'سبتمبر' }}</option>
+                        <option value="10">{{ 'October' if session.lang == 'en' else 'أكتوبر' }}</option>
+                        <option value="11">{{ 'November' if session.lang == 'en' else 'نوفمبر' }}</option>
+                        <option value="12">{{ 'December' if session.lang == 'en' else 'ديسمبر' }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label>{{ 'Year' if session.lang == 'en' else 'السنة' }}</label>
+                    <select class="form-select" id="filterYear" onchange="loadPayrolls()">
+                        <option value="">{{ 'All' if session.lang == 'en' else 'الكل' }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label>{{ 'Status' if session.lang == 'en' else 'الحالة' }}</label>
+                    <select class="form-select" id="filterStatus" onchange="loadPayrolls()">
+                        <option value="">{{ 'All' if session.lang == 'en' else 'الكل' }}</option>
+                        <option value="pending">{{ 'Pending' if session.lang == 'en' else 'قيد الانتظار' }}</option>
+                        <option value="approved">{{ 'Approved' if session.lang == 'en' else 'معتمد' }}</option>
+                        <option value="paid">{{ 'Paid' if session.lang == 'en' else 'مدفوع' }}</option>
+                        <option value="cancelled">{{ 'Cancelled' if session.lang == 'en' else 'ملغي' }}</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label>{{ 'Search' if session.lang == 'en' else 'بحث' }}</label>
+                    <input type="text" class="form-control" id="searchEmployee" 
+                           placeholder="{{ 'Search by employee name...' if session.lang == 'en' else 'البحث باسم الموظف...' }}"
+                           oninput="loadPayrolls()">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+                        <i class="fas fa-redo"></i> {{ 'Reset' if session.lang == 'en' else 'إعادة تعيين' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payroll Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">{{ 'Payroll Records' if session.lang == 'en' else 'سجلات الرواتب' }}</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="payrollTable">
+                    <thead>
+                        <tr>
+                            <th>{{ 'ID' if session.lang == 'en' else 'الرقم' }}</th>
+                            <th>{{ 'Employee' if session.lang == 'en' else 'الموظف' }}</th>
+                            <th>{{ 'Period' if session.lang == 'en' else 'الفترة' }}</th>
+                            <th>{{ 'Basic' if session.lang == 'en' else 'الأساسي' }}</th>
+                            <th>{{ 'Allowances' if session.lang == 'en' else 'البدلات' }}</th>
+                            <th>{{ 'Gross' if session.lang == 'en' else 'الإجمالي' }}</th>
+                            <th>{{ 'Deductions' if session.lang == 'en' else 'الخصومات' }}</th>
+                            <th>{{ 'Net' if session.lang == 'en' else 'الصافي' }}</th>
+                            <th>{{ 'Status' if session.lang == 'en' else 'الحالة' }}</th>
+                            <th>{{ 'Actions' if session.lang == 'en' else 'إجراءات' }}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payrollTableBody">
+                        <tr>
+                            <td colspan="10" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">{{ 'Loading...' if session.lang == 'en' else 'جاري التحميل...' }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Payroll Modal -->
+<div class="modal fade" id="payrollModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="payrollModalTitle">{{ 'Add Payroll' if session.lang == 'en' else 'إضافة راتب' }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="payrollForm">
+                    <input type="hidden" id="payrollId">
+                    
+                    <!-- Employee & Period -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">{{ 'Employee' if session.lang == 'en' else 'الموظف' }} *</label>
+                            <select class="form-select" id="employeeId" required onchange="loadEmployeeTemplate()">
+                                <option value="">{{ 'Select Employee' if session.lang == 'en' else 'اختر الموظف' }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ 'Month' if session.lang == 'en' else 'الشهر' }} *</label>
+                            <select class="form-select" id="month" required>
+                                <option value="1">{{ 'January' if session.lang == 'en' else 'يناير' }}</option>
+                                <option value="2">{{ 'February' if session.lang == 'en' else 'فبراير' }}</option>
+                                <option value="3">{{ 'March' if session.lang == 'en' else 'مارس' }}</option>
+                                <option value="4">{{ 'April' if session.lang == 'en' else 'أبريل' }}</option>
+                                <option value="5">{{ 'May' if session.lang == 'en' else 'مايو' }}</option>
+                                <option value="6">{{ 'June' if session.lang == 'en' else 'يونيو' }}</option>
+                                <option value="7">{{ 'July' if session.lang == 'en' else 'يوليو' }}</option>
+                                <option value="8">{{ 'August' if session.lang == 'en' else 'أغسطس' }}</option>
+                                <option value="9">{{ 'September' if session.lang == 'en' else 'سبتمبر' }}</option>
+                                <option value="10">{{ 'October' if session.lang == 'en' else 'أكتوبر' }}</option>
+                                <option value="11">{{ 'November' if session.lang == 'en' else 'نوفمبر' }}</option>
+                                <option value="12">{{ 'December' if session.lang == 'en' else 'ديسمبر' }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Year' if session.lang == 'en' else 'السنة' }} *</label>
+                            <input type="number" class="form-control" id="year" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ 'Status' if session.lang == 'en' else 'الحالة' }}</label>
+                            <select class="form-select" id="status">
+                                <option value="pending">{{ 'Pending' if session.lang == 'en' else 'قيد الانتظار' }}</option>
+                                <option value="approved">{{ 'Approved' if session.lang == 'en' else 'معتمد' }}</option>
+                                <option value="paid">{{ 'Paid' if session.lang == 'en' else 'مدفوع' }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Basic Salary & Allowances -->
+                    <h6 class="border-bottom pb-2 mb-3">{{ 'Basic Salary & Allowances' if session.lang == 'en' else 'الراتب الأساسي والبدلات' }}</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">{{ 'Basic Salary' if session.lang == 'en' else 'الراتب الأساسي' }}</label>
+                            <input type="number" class="form-control" id="basic" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Housing' if session.lang == 'en' else 'السكن' }}</label>
+                            <input type="number" class="form-control" id="housingAllowance" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Transport' if session.lang == 'en' else 'المواصلات' }}</label>
+                            <input type="number" class="form-control" id="transportAllowance" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Food' if session.lang == 'en' else 'الغذاء' }}</label>
+                            <input type="number" class="form-control" id="foodAllowance" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Phone' if session.lang == 'en' else 'الهاتف' }}</label>
+                            <input type="number" class="form-control" id="phoneAllowance" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">{{ 'Other' if session.lang == 'en' else 'أخرى' }}</label>
+                            <input type="number" class="form-control" id="otherAllowances" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                    </div>
+
+                    <!-- Additions -->
+                    <h6 class="border-bottom pb-2 mb-3">{{ 'Additions' if session.lang == 'en' else 'الإضافات' }}</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Bonus' if session.lang == 'en' else 'المكافآت' }}</label>
+                            <input type="number" class="form-control" id="bonus" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Commission' if session.lang == 'en' else 'العمولات' }}</label>
+                            <input type="number" class="form-control" id="commission" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Incentives' if session.lang == 'en' else 'الحوافز' }}</label>
+                            <input type="number" class="form-control" id="incentives" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Overtime Hours' if session.lang == 'en' else 'ساعات إضافية' }}</label>
+                            <input type="number" class="form-control" id="overtimeHours" step="0.5" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'OT Rate' if session.lang == 'en' else 'معدل الساعة' }}</label>
+                            <input type="number" class="form-control" id="overtimeRate" step="0.1" value="1.5" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'OT Amount' if session.lang == 'en' else 'قيمة الساعات' }}</label>
+                            <input type="number" class="form-control" id="overtimeAmount" step="0.01" value="0" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Deductions -->
+                    <h6 class="border-bottom pb-2 mb-3">{{ 'Deductions' if session.lang == 'en' else 'الخصومات' }}</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Absence Days' if session.lang == 'en' else 'أيام الغياب' }}</label>
+                            <input type="number" class="form-control" id="absenceDays" step="1" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Absence Ded.' if session.lang == 'en' else 'خصم الغياب' }}</label>
+                            <input type="number" class="form-control" id="absenceDeduction" step="0.01" value="0" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Late Minutes' if session.lang == 'en' else 'دقائق التأخير' }}</label>
+                            <input type="number" class="form-control" id="lateMinutes" step="1" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Late Ded.' if session.lang == 'en' else 'خصم التأخير' }}</label>
+                            <input type="number" class="form-control" id="lateDeduction" step="0.01" value="0" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Loan Ded.' if session.lang == 'en' else 'خصم قرض' }}</label>
+                            <input type="number" class="form-control" id="loanDeduction" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ 'Other Ded.' if session.lang == 'en' else 'خصومات أخرى' }}</label>
+                            <input type="number" class="form-control" id="otherDeductions" step="0.01" value="0" onchange="calculateNet()">
+                        </div>
+                    </div>
+
+                    <!-- Summary -->
+                    <div class="row mb-3 bg-light p-3 rounded">
+                        <div class="col-md-3">
+                            <label class="fw-bold">{{ 'Gross Salary' if session.lang == 'en' else 'الراتب الإجمالي' }}</label>
+                            <h4 class="text-success" id="grossSalary">0.00</h4>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="fw-bold">{{ 'Total Deductions' if session.lang == 'en' else 'إجمالي الخصومات' }}</label>
+                            <h4 class="text-danger" id="totalDeductionsCalc">0.00</h4>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="fw-bold">{{ 'Tax' if session.lang == 'en' else 'الضريبة' }}</label>
+                            <h4 class="text-warning" id="taxAmount">0.00</h4>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="fw-bold">{{ 'Net Salary' if session.lang == 'en' else 'صافي الراتب' }}</label>
+                            <h4 class="text-primary" id="netSalary">0.00</h4>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-3">
+                        <label class="form-label">{{ 'Notes' if session.lang == 'en' else 'ملاحظات' }}</label>
+                        <textarea class="form-control" id="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    {{ 'Cancel' if session.lang == 'en' else 'إلغاء' }}
+                </button>
+                <button type="button" class="btn btn-primary" onclick="savePayroll()">
+                    <i class="fas fa-save"></i> {{ 'Save' if session.lang == 'en' else 'حفظ' }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Details Modal -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ 'Payroll Details' if session.lang == 'en' else 'تفاصيل الراتب' }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="viewModalBody">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Generate Batch Modal -->
+<div class="modal fade" id="batchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ 'Generate Monthly Payroll' if session.lang == 'en' else 'إنشاء كشف الرواتب الشهري' }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">{{ 'Month' if session.lang == 'en' else 'الشهر' }} *</label>
+                    <select class="form-select" id="batchMonth">
+                        <option value="1">{{ 'January' if session.lang == 'en' else 'يناير' }}</option>
+                        <option value="2">{{ 'February' if session.lang == 'en' else 'فبراير' }}</option>
+                        <option value="3">{{ 'March' if session.lang == 'en' else 'مارس' }}</option>
+                        <option value="4">{{ 'April' if session.lang == 'en' else 'أبريل' }}</option>
+                        <option value="5">{{ 'May' if session.lang == 'en' else 'مايو' }}</option>
+                        <option value="6">{{ 'June' if session.lang == 'en' else 'يونيو' }}</option>
+                        <option value="7">{{ 'July' if session.lang == 'en' else 'يوليو' }}</option>
+                        <option value="8">{{ 'August' if session.lang == 'en' else 'أغسطس' }}</option>
+                        <option value="9">{{ 'September' if session.lang == 'en' else 'سبتمبر' }}</option>
+                        <option value="10">{{ 'October' if session.lang == 'en' else 'أكتوبر' }}</option>
+                        <option value="11">{{ 'November' if session.lang == 'en' else 'نوفمبر' }}</option>
+                        <option value="12">{{ 'December' if session.lang == 'en' else 'ديسمبر' }}</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ 'Year' if session.lang == 'en' else 'السنة' }} *</label>
+                    <input type="number" class="form-control" id="batchYear">
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    {{ 'This will generate payroll for all active employees based on their templates.' if session.lang == 'en' 
+                       else 'سيتم إنشاء كشف الرواتب لجميع الموظفين النشطين بناءً على قوالبهم.' }}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    {{ 'Cancel' if session.lang == 'en' else 'إلغاء' }}
+                </button>
+                <button type="button" class="btn btn-primary" onclick="generateBatch()">
+                    <i class="fas fa-cogs"></i> {{ 'Generate' if session.lang == 'en' else 'إنشاء' }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/payroll_manage.js') }}"></script>
+{% endblock %}

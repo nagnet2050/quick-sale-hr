@@ -1,0 +1,573 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'مركز الدعم والمتابعة' if lang == 'ar' else 'Support Hub' }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">{{ 'مركز الدعم والمتابعة' if lang == 'ar' else 'Support & Customer Follow-up' }}</h4>
+  </div>
+
+  <ul class="nav nav-tabs" id="hubTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tickets-tab" data-bs-toggle="tab" data-bs-target="#tickets" type="button">
+        <i class="fas fa-ticket-alt"></i> {{ 'التذاكر' if lang == 'ar' else 'Tickets' }}
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button">
+        <i class="fas fa-list-check"></i> {{ 'مهام الموظف' if lang == 'ar' else 'Employee Tasks' }}
+      </button>
+    </li>
+    {% if is_manager %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="manager-tab" data-bs-toggle="tab" data-bs-target="#manager" type="button">
+        <i class="fas fa-user-tie"></i> {{ 'لوحة المدير' if lang == 'ar' else 'Manager' }}
+      </button>
+    </li>
+    {% endif %}
+  </ul>
+
+  <div class="tab-content mt-3">
+    <!-- Tickets Tab -->
+    <div class="tab-pane fade show active" id="tickets" role="tabpanel">
+      <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <div>
+            <i class="fas fa-ticket-alt"></i> {{ 'تذاكر الدعم' if lang == 'ar' else 'Support Tickets' }}
+          </div>
+          <div class="d-flex align-items-center">
+            <select class="form-select form-select-sm me-2" id="deptFilter">
+              <option value="all">{{ 'كل الأقسام' if lang == 'ar' else 'All' }}</option>
+              <option value="technical_support">{{ 'الدعم الفني' if lang == 'ar' else 'Technical' }}</option>
+              <option value="sales">{{ 'المبيعات' if lang == 'ar' else 'Sales' }}</option>
+              <option value="billing">{{ 'المحاسبة' if lang == 'ar' else 'Billing' }}</option>
+              <option value="management">{{ 'الإدارة' if lang == 'ar' else 'Management' }}</option>
+            </select>
+            <select class="form-select form-select-sm me-2" id="statusFilter">
+              <option value="open">{{ 'مفتوحة' if lang == 'ar' else 'Open' }}</option>
+              <option value="resolved">{{ 'محلولة' if lang == 'ar' else 'Resolved' }}</option>
+              <option value="new">{{ 'جديدة' if lang == 'ar' else 'New' }}</option>
+              <option value="assigned">{{ 'مُعينة' if lang == 'ar' else 'Assigned' }}</option>
+              <option value="in_progress">{{ 'قيد التنفيذ' if lang == 'ar' else 'In Progress' }}</option>
+            </select>
+            {% if can_use_assigned_filter %}
+              <select class="form-select form-select-sm me-2" id="assignedFilter">
+                <option value="all">{{ 'المعين: الكل' if lang=='ar' else 'Assigned: All' }}</option>
+                <option value="unassigned">{{ 'غير معيّن' if lang=='ar' else 'Unassigned' }}</option>
+                {% for u in users_list %}
+                  <option value="{{ u.id }}">{{ u.username }}</option>
+                {% endfor %}
+              </select>
+            {% endif %}
+            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#newTicketModal">
+              <i class="fas fa-plus"></i> {{ 'تذكرة جديدة' if lang == 'ar' else 'New Ticket' }}
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{{ 'العميل' if lang == 'ar' else 'Client' }}</th>
+                  <th>{{ 'الهاتف' if lang == 'ar' else 'Phone' }}</th>
+                  <th>{{ 'المشكلة' if lang == 'ar' else 'Issue' }}</th>
+                  <th>{{ 'القسم' if lang == 'ar' else 'Dept' }}</th>
+                  <th>{{ 'الحالة' if lang == 'ar' else 'Status' }}</th>
+                  <th>{{ 'الأولوية' if lang == 'ar' else 'Priority' }}</th>
+                  <th>{{ 'المعيّن' if lang == 'ar' else 'Assigned' }}</th>
+                  <th class="text-end">{{ 'إجراءات' if lang == 'ar' else 'Actions' }}</th>
+                </tr>
+              </thead>
+              <tbody id="ticketsBody">
+                {% for t in tickets %}
+                <tr>
+                  <td>{{ t.id }}</td>
+                  <td><strong>{{ t.client_name }}</strong>{% if t.client_company %}<br><small class="text-muted">{{ t.client_company }}</small>{% endif %}</td>
+                  <td>{{ t.client_phone }}</td>
+                  <td><small>{{ t.issue[:80] }}{% if t.issue|length > 80 %}...{% endif %}</small></td>
+                  <td>
+                    <span class="badge bg-secondary">{{ t.department }}</span>
+                  </td>
+                  <td>
+                    <span class="badge {% if t.status=='resolved' %}bg-success{% elif t.status in ['new','assigned'] %}bg-info{% elif t.status=='in_progress' %}bg-warning{% else %}bg-dark{% endif %}">{{ t.status }}</span>
+                  </td>
+                  <td>
+                    <span class="badge {% if t.priority=='urgent' %}bg-danger{% elif t.priority=='high' %}bg-warning{% elif t.priority=='medium' %}bg-info{% else %}bg-secondary{% endif %}">{{ t.priority }}</span>
+                  </td>
+                  <td>
+                    {% set uname = users_map.get(t.assigned_to) if users_map else None %}
+                    {% if uname %}
+                      <span class="badge bg-secondary">{{ uname }}</span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <a class="btn btn-outline-primary" href="{{ url_for('client_support.client_support_view', ticket_id=t.id) }}" title="{{ 'عرض' if lang=='ar' else 'View' }}">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      {% if can_assign %}
+                        <button class="btn btn-outline-secondary" title="{{ 'تعيين' if lang=='ar' else 'Assign' }}" onclick="openAssignModal({{ t.id }})">
+                          <i class="fas fa-user-plus"></i>
+                        </button>
+                      {% endif %}
+                      <button class="btn btn-outline-warning" title="{{ 'تحويل' if lang=='ar' else 'Transfer' }}" onclick="openTransferModal({{ t.id }}, '{{ t.department }}')">
+                        <i class="fas fa-exchange-alt"></i>
+                      </button>
+                      {% if not t.resolved %}
+                      <button class="btn btn-outline-success" title="{{ 'حل' if lang=='ar' else 'Resolve' }}" onclick="resolveTicket({{ t.id }})">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted">{{ 'لا توجد تذاكر' if lang == 'ar' else 'No tickets' }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employee Tasks Tab -->
+    <div class="tab-pane fade" id="tasks" role="tabpanel">
+      <div class="row" id="tasksLoading">
+        <div class="col-12 text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+      </div>
+      <div id="tasksContent" style="display:none;">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-header bg-primary text-white">{{ 'جديدة' if lang=='ar' else 'New' }}</div>
+              <div class="card-body"><div id="newList" class="list-group small"></div></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-header bg-warning text-white">{{ 'قيد التنفيذ' if lang=='ar' else 'In Progress' }}</div>
+              <div class="card-body"><div id="progressList" class="list-group small"></div></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-header bg-success text-white">{{ 'منجزة (7 أيام)' if lang=='ar' else 'Completed (7d)' }}</div>
+              <div class="card-body"><div id="completedList" class="list-group small"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if is_manager %}
+    <!-- Manager Tab -->
+    <div class="tab-pane fade" id="manager" role="tabpanel">
+      <div class="card">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+          <div><i class="fas fa-user-tie"></i> {{ 'شكاوى العملاء (إدارة)' if lang=='ar' else 'Customer Complaints (Manager)' }}</div>
+          <button class="btn btn-outline-light btn-sm" id="refreshComplaintsBtn"><i class="fas fa-sync"></i> {{ 'تحديث' if lang=='ar' else 'Refresh' }}</button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle" id="complaintsTable">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>{{ 'العميل' if lang=='ar' else 'Customer' }}</th>
+                  <th>{{ 'الهاتف' if lang=='ar' else 'Phone' }}</th>
+                  <th>{{ 'المشكلة' if lang=='ar' else 'Issue' }}</th>
+                  <th>{{ 'الأولوية' if lang=='ar' else 'Priority' }}</th>
+                  <th>{{ 'الحالة' if lang=='ar' else 'Status' }}</th>
+                </tr>
+              </thead>
+              <tbody id="complaintsBody">
+                <tr><td colspan="6" class="text-center text-muted">{{ 'جاري التحميل...' if lang=='ar' else 'Loading...' }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function(){
+  // Filters navigation (server-side reload)
+  const deptSel = document.getElementById('deptFilter');
+  const statusSel = document.getElementById('statusFilter');
+  const assignedSel = document.getElementById('assignedFilter');
+  if (deptSel && statusSel){
+    const reload = ()=>{
+      const params = new URLSearchParams(window.location.search);
+      params.set('department', deptSel.value);
+      params.set('status', statusSel.value);
+      if (assignedSel) params.set('assigned', assignedSel.value);
+      window.location.search = params.toString();
+    };
+    deptSel.addEventListener('change', reload);
+    statusSel.addEventListener('change', reload);
+    if (assignedSel) assignedSel.addEventListener('change', reload);
+
+    // Initialize from current query params
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('department')) deptSel.value = params.get('department');
+    if (params.has('status')) statusSel.value = params.get('status');
+    if (assignedSel && params.has('assigned')) assignedSel.value = params.get('assigned');
+  }
+
+  // Employee tasks loader
+  const tasksTab = document.getElementById('tasks-tab');
+  const loadTasks = async ()=>{
+    try{
+      const r = await fetch('/api/support/employee/tasks');
+      const d = await r.json();
+      document.getElementById('tasksLoading').style.display = 'none';
+      document.getElementById('tasksContent').style.display = '';
+      const renderItem = (item)=>`<a href="#" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+          <h6 class="mb-1">${item.customer_name || item.customer_phone}</h6>
+          <small class="text-muted">#${item.id}</small>
+        </div>
+        <small class="text-muted">${item.priority || ''} • ${item.category || ''}</small>
+        <p class="mb-1">${(item.issue_description||'').slice(0,120)}</p>
+      </a>`;
+      document.getElementById('newList').innerHTML = (d.new||[]).map(renderItem).join('') || '<div class="text-muted">{{ 'لا توجد عناصر' if lang=='ar' else 'No items' }}</div>';
+      document.getElementById('progressList').innerHTML = (d.progress||[]).map(renderItem).join('') || '<div class="text-muted">{{ 'لا توجد عناصر' if lang=='ar' else 'No items' }}</div>';
+      document.getElementById('completedList').innerHTML = (d.completed||[]).map(renderItem).join('') || '<div class="text-muted">{{ 'لا توجد عناصر' if lang=='ar' else 'No items' }}</div>';
+    }catch(err){
+      document.getElementById('tasksLoading').innerHTML = '<div class="col-12 text-center text-danger">{{ 'خطأ في تحميل المهام' if lang=='ar' else 'Failed to load tasks' }}</div>';
+    }
+  };
+  if (tasksTab){ tasksTab.addEventListener('shown.bs.tab', loadTasks); }
+
+  // Manager complaints loader
+  const managerTab = document.getElementById('manager-tab');
+  const loadComplaints = async ()=>{
+    try{
+      const r = await fetch('/api/support/manager/complaints');
+      if (r.status === 403){
+        document.getElementById('complaintsBody').innerHTML = '<tr><td colspan="6" class="text-center text-warning">{{ 'غير مصرح' if lang=='ar' else 'Unauthorized' }}</td></tr>';
+        return;
+      }
+      const d = await r.json();
+      const rows = (d.complaints||[]).map(c=>`<tr>
+        <td>${c.id}</td>
+        <td>${c.customer_name || ''}</td>
+        <td>${c.customer_phone || ''}</td>
+        <td><small>${(c.issue_description||'').slice(0,100)}</small></td>
+        <td><span class="badge ${c.priority==='urgent'?'bg-danger':(c.priority==='high'?'bg-warning':(c.priority==='medium'?'bg-info':'bg-secondary'))}">${c.priority||''}</span></td>
+        <td>${c.status}</td>
+      </tr>`).join('');
+      document.getElementById('complaintsBody').innerHTML = rows || '<tr><td colspan="6" class="text-center text-muted">{{ 'لا توجد شكاوى' if lang=='ar' else 'No complaints' }}</td></tr>';
+    }catch(err){
+      document.getElementById('complaintsBody').innerHTML = '<tr><td colspan="6" class="text-center text-danger">{{ 'خطأ في التحميل' if lang=='ar' else 'Failed to load' }}</td></tr>';
+    }
+  };
+  if (managerTab){ managerTab.addEventListener('shown.bs.tab', loadComplaints); }
+  const refreshBtn = document.getElementById('refreshComplaintsBtn');
+  if (refreshBtn){ refreshBtn.addEventListener('click', loadComplaints); }
+
+  // Auto-load tasks if first open
+  // No auto to avoid extra calls until tab is opened
+})();
+</script>
+
+<script>
+const hubLang = '{{ lang }}';
+const hubDepartments = {{ departments | tojson }};
+
+function openTransferModal(ticketId, currentDept){
+  // Pre-fill modal fields
+  const cur = hubDepartments[currentDept] ? hubDepartments[currentDept]['name_' + hubLang] : currentDept;
+  document.getElementById('hubTransferTicketId').value = ticketId;
+  document.getElementById('hubCurrentDept').value = cur;
+  document.getElementById('hubToDepartment').value = '';
+  const toUserSel = document.getElementById('hubToUser');
+  if (toUserSel){ toUserSel.innerHTML = '<option value="">{{ 'بدون تعيين' if lang=='ar' else 'No Assignment' }}</option>'; }
+  document.getElementById('hubTransferReason').value = 'خارج التخصص';
+  document.getElementById('hubTransferNotes').value = '';
+  const modal = new bootstrap.Modal(document.getElementById('hubTransferModal'));
+  modal.show();
+}
+
+async function submitHubTransfer(){
+  const ticketId = document.getElementById('hubTransferTicketId').value;
+  const toDept = document.getElementById('hubToDepartment').value;
+  const toUser = (document.getElementById('hubToUser') && document.getElementById('hubToUser').value) ? document.getElementById('hubToUser').value : null;
+  const reason = document.getElementById('hubTransferReason').value;
+  const notes = document.getElementById('hubTransferNotes').value;
+  if (!toDept || !reason){
+    alert(hubLang==='ar' ? 'يرجى اختيار القسم وسبب التحويل' : 'Please select department and reason');
+    return;
+  }
+  try{
+    const resp = await fetch(`/api/client-support/transfer/${ticketId}`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ to_department: toDept, to_user: toUser, transfer_reason: reason, transfer_notes: notes })
+    });
+    const data = await resp.json();
+    if (data.success){
+      bootstrap.Modal.getInstance(document.getElementById('hubTransferModal')).hide();
+      if (window.showToast){ window.showToast(hubLang==='ar'?'تم التحويل بنجاح':'Transfer successful','success'); }
+      location.reload();
+    } else {
+      alert((hubLang==='ar'?'خطأ: ':'Error: ') + (data.error||'Failed'));
+    }
+  }catch(err){
+    alert(hubLang==='ar'?'حدث خطأ أثناء التحويل':'Error during transfer');
+  }
+}
+
+async function resolveTicket(ticketId){
+  const notes = prompt(hubLang==='ar'?'ملاحظات الحل (اختياري):':'Resolution notes (optional):');
+  try{
+    const resp = await fetch(`/api/client-support/update-status/${ticketId}`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ status: 'resolved', resolution_notes: notes })
+    });
+    const data = await resp.json();
+    if (data.success){
+      if (window.showToast){ window.showToast(hubLang==='ar'?'تم حل التذكرة':'Ticket resolved','success'); }
+      location.reload();
+    } else {
+      alert((hubLang==='ar'?'خطأ: ':'Error: ') + (data.error||'Failed'));
+    }
+  }catch(err){
+    alert(hubLang==='ar'?'حدث خطأ أثناء التحديث':'Error updating ticket');
+  }
+}
+
+function openAssignModal(ticketId){
+  document.getElementById('hubAssignTicketId').value = ticketId;
+  loadAssignUsers();
+  new bootstrap.Modal(document.getElementById('hubAssignModal')).show();
+}
+
+async function loadAssignUsers(){
+  const sel = document.getElementById('hubAssignUser');
+  sel.innerHTML = '<option value="">{{ 'اختر موظف' if lang=='ar' else 'Select User' }}</option>';
+  try{
+    // يستخدم نفس الـ API لإرجاع جميع النشِطين حالياً
+    const res = await fetch('/api/client-support/departments/technical_support');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.users)){
+      data.users.forEach(u=>{
+        const opt = document.createElement('option');
+        opt.value = u.id; opt.textContent = `${u.username} (${u.role})`;
+        sel.appendChild(opt);
+      });
+    }
+  }catch(e){ console.error('loadAssignUsers failed', e); }
+}
+
+async function submitAssignTicket(){
+  const ticketId = document.getElementById('hubAssignTicketId').value;
+  const userId = document.getElementById('hubAssignUser').value;
+  if (!userId){
+    alert('{{ 'يرجى اختيار الموظف' if lang=='ar' else 'Please select a user' }}'); return;
+  }
+  try{
+    const resp = await fetch(`/api/client-support/assign/${ticketId}`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ user_id: userId })
+    });
+    const data = await resp.json();
+    if (data.success){
+      bootstrap.Modal.getInstance(document.getElementById('hubAssignModal')).hide();
+      if (window.showToast){ window.showToast('{{ 'تم التعيين بنجاح' if lang=='ar' else 'Assigned successfully' }}','success'); }
+      location.reload();
+    } else {
+      alert(({{ '"خطأ: "' if lang=='ar' else '"Error: "' }}) + (data.error||'Failed'));
+    }
+  }catch(e){
+    alert('{{ 'تعذر إتمام التعيين' if lang=='ar' else 'Failed to assign' }}');
+  }
+}
+</script>
+
+<script>
+async function loadHubDepartmentUsers(department){
+  const select = document.getElementById('hubToUser');
+  if (!select) return;
+  if (!department){
+    select.innerHTML = '<option value="">{{ 'بدون تعيين' if lang=='ar' else 'No Assignment' }}</option>';
+    return;
+  }
+  try{
+    const res = await fetch(`/api/client-support/departments/${department}`);
+    const data = await res.json();
+    select.innerHTML = '<option value="">{{ 'بدون تعيين' if lang=='ar' else 'No Assignment' }}</option>';
+    if (data.success && Array.isArray(data.users)){
+      data.users.forEach(u=>{
+        const opt = document.createElement('option');
+        opt.value = u.id; opt.textContent = `${u.username} (${u.role})`;
+        select.appendChild(opt);
+      });
+    }
+  }catch(e){
+    console.error('Failed to load users', e);
+  }
+}
+</script>
+
+<!-- Modal: تحويل تذكرة (مبسّط) -->
+<div class="modal fade" id="hubTransferModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title">{{ 'تحويل التذكرة' if lang=='ar' else 'Transfer Ticket' }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="hubTransferTicketId">
+        <div class="mb-3">
+          <label class="form-label">{{ 'القسم الحالي' if lang=='ar' else 'Current Department' }}</label>
+          <input type="text" id="hubCurrentDept" class="form-control" readonly>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'تحويل إلى' if lang=='ar' else 'Transfer To' }} *</label>
+          <select id="hubToDepartment" class="form-select" onchange="loadHubDepartmentUsers(this.value)">
+            <option value="">{{ 'اختر القسم' if lang=='ar' else 'Select Department' }}</option>
+            <option value="technical_support">{{ 'الدعم الفني' if lang=='ar' else 'Technical Support' }}</option>
+            <option value="sales">{{ 'المبيعات' if lang=='ar' else 'Sales' }}</option>
+            <option value="billing">{{ 'المحاسبة' if lang=='ar' else 'Billing' }}</option>
+            <option value="management">{{ 'الإدارة' if lang=='ar' else 'Management' }}</option>
+          </select>
+        </div>
+        {% if can_assign %}
+          <div class="mb-3">
+            <label class="form-label">{{ 'الموظف المسؤول' if lang=='ar' else 'Assigned User' }}</label>
+            <select id="hubToUser" class="form-select">
+              <option value="">{{ 'بدون تعيين' if lang=='ar' else 'No Assignment' }}</option>
+            </select>
+          </div>
+        {% endif %}
+        <div class="mb-3">
+          <label class="form-label">{{ 'سبب التحويل' if lang=='ar' else 'Transfer Reason' }} *</label>
+          <select id="hubTransferReason" class="form-select">
+            <option value="خارج التخصص">{{ 'خارج التخصص' if lang=='ar' else 'Out of Scope' }}</option>
+            <option value="يتطلب خبرة قسم آخر">{{ 'يتطلب خبرة قسم آخر' if lang=='ar' else 'Requires Other Department Expertise' }}</option>
+            <option value="مشكلة تقنية - تحويل للدعم">{{ 'مشكلة تقنية - تحويل للدعم' if lang=='ar' else 'Technical Issue - Transfer to Support' }}</option>
+            <option value="استفسار مبيعات - تحويل للمبيعات">{{ 'استفسار مبيعات - تحويل للمبيعات' if lang=='ar' else 'Sales Inquiry - Transfer to Sales' }}</option>
+            <option value="يحتاج قرار إداري - تحويل للإدارة">{{ 'يحتاج قرار إداري - تحويل للإدارة' if lang=='ar' else 'Needs Management Decision' }}</option>
+            <option value="طلب عميل للتحويل">{{ 'طلب عميل للتحويل' if lang=='ar' else 'Client Requested Transfer' }}</option>
+            <option value="تصعيد للإدارة">{{ 'تصعيد للإدارة' if lang=='ar' else 'Escalation to Management' }}</option>
+            <option value="أخرى">{{ 'أخرى' if lang=='ar' else 'Other' }}</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ 'ملاحظات التحويل' if lang=='ar' else 'Transfer Notes' }}</label>
+          <textarea id="hubTransferNotes" class="form-control" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'إلغاء' if lang=='ar' else 'Cancel' }}</button>
+        <button type="button" class="btn btn-warning" onclick="submitHubTransfer()">{{ 'تحويل' if lang=='ar' else 'Transfer' }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if can_assign %}
+<!-- Modal: تعيين تذكرة -->
+<div class="modal fade" id="hubAssignModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-secondary text-white">
+        <h5 class="modal-title">{{ 'تعيين التذكرة' if lang=='ar' else 'Assign Ticket' }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="hubAssignTicketId">
+        <div class="mb-3">
+          <label class="form-label">{{ 'الموظف' if lang=='ar' else 'User' }}</label>
+          <select id="hubAssignUser" class="form-select"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ 'إلغاء' if lang=='ar' else 'Cancel' }}</button>
+        <button type="button" class="btn btn-secondary" onclick="submitAssignTicket()">{{ 'تعيين' if lang=='ar' else 'Assign' }}</button>
+      </div>
+    </div>
+  </div>
+  </div>
+{% endif %}
+
+<!-- Modal: تذكرة دعم جديدة داخل الهب -->
+<div class="modal fade" id="newTicketModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">{{ 'تذكرة دعم جديدة' if lang == 'ar' else 'New Support Ticket' }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('client_support.client_support') }}">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">{{ 'اسم العميل' if lang == 'ar' else 'Client Name' }} *</label>
+              <input type="text" name="client_name" class="form-control" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">{{ 'رقم الهاتف' if lang == 'ar' else 'Phone Number' }} *</label>
+              <input type="text" name="client_phone" class="form-control" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">{{ 'البريد الإلكتروني' if lang == 'ar' else 'Email' }}</label>
+              <input type="email" name="client_email" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">{{ 'الشركة' if lang == 'ar' else 'Company' }}</label>
+              <input type="text" name="client_company" class="form-control">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">{{ 'نوع المشكلة' if lang == 'ar' else 'Issue Type' }}</label>
+              <select name="issue_type" class="form-select">
+                <option value="technical">{{ 'تقني' if lang == 'ar' else 'Technical' }}</option>
+                <option value="sales">{{ 'مبيعات' if lang == 'ar' else 'Sales' }}</option>
+                <option value="billing">{{ 'محاسبة' if lang == 'ar' else 'Billing' }}</option>
+                <option value="general" selected>{{ 'عام' if lang == 'ar' else 'General' }}</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">{{ 'القسم' if lang == 'ar' else 'Department' }}</label>
+              <select name="department" class="form-select">
+                <option value="technical_support">{{ 'الدعم الفني' if lang == 'ar' else 'Technical Support' }}</option>
+                <option value="sales">{{ 'المبيعات' if lang == 'ar' else 'Sales' }}</option>
+                <option value="billing">{{ 'المحاسبة' if lang == 'ar' else 'Billing' }}</option>
+                <option value="management">{{ 'الإدارة' if lang == 'ar' else 'Management' }}</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">{{ 'الأولوية' if lang == 'ar' else 'Priority' }}</label>
+              <select name="priority" class="form-select">
+                <option value="low">{{ 'منخفضة' if lang == 'ar' else 'Low' }}</option>
+                <option value="medium" selected>{{ 'متوسطة' if lang == 'ar' else 'Medium' }}</option>
+                <option value="high">{{ 'عالية' if lang == 'ar' else 'High' }}</option>
+                <option value="urgent">{{ 'عاجلة' if lang == 'ar' else 'Urgent' }}</option>
+              </select>
+            </div>
+            <div class="col-12 mb-3">
+              <label class="form-label">{{ 'وصف المشكلة' if lang == 'ar' else 'Issue Description' }} *</label>
+              <textarea name="issue" class="form-control" rows="4" required></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'إلغاء' if lang == 'ar' else 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary">{{ 'إنشاء التذكرة' if lang == 'ar' else 'Create Ticket' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </div>
+{% endblock %}

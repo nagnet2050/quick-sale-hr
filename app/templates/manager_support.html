@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}الدعم الفني - لوحة المدير{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- الإحصائيات -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-exclamation-triangle"></i> شكاوى جديدة</h5>
+                    <h2 id="newCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-hourglass-split"></i> قيد المراجعة</h5>
+                    <h2 id="reviewCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-check-circle"></i> تم الرد</h5>
+                    <h2 id="respondedCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-check-all"></i> محلولة</h5>
+                    <h2 id="resolvedCount">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الفلاتر -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-funnel"></i> فلترة الشكاوى
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">الحالة</label>
+                    <select class="form-select" id="filterStatus">
+                        <option value="">الكل</option>
+                        <option value="sent_to_manager">محولة للمدير</option>
+                        <option value="manager_responded">تم الرد</option>
+                        <option value="in_progress">قيد التنفيذ</option>
+                        <option value="resolved">محلولة</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الأولوية</label>
+                    <select class="form-select" id="filterPriority">
+                        <option value="">الكل</option>
+                        <option value="urgent">عاجل</option>
+                        <option value="high">عالي</option>
+                        <option value="medium">متوسط</option>
+                        <option value="low">منخفض</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">التصنيف</label>
+                    <select class="form-select" id="filterCategory">
+                        <option value="">الكل</option>
+                        <option value="billing">فواتير</option>
+                        <option value="technical">دعم فني</option>
+                        <option value="training">تدريب</option>
+                        <option value="other">أخرى</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">البحث</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="بحث برقم الهاتف أو الاسم">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الشكاوى -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-list-check"></i> الشكاوى المحالة للمدير
+            <button class="btn btn-sm btn-light float-end" onclick="refreshComplaints()">
+                <i class="bi bi-arrow-clockwise"></i> تحديث
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="complaintsTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>الرقم</th>
+                            <th>العميل</th>
+                            <th>الهاتف</th>
+                            <th>المشكلة</th>
+                            <th>الأولوية</th>
+                            <th>التصنيف</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="complaintsBody">
+                        <tr>
+                            <td colspan="9" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">جاري التحميل...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تفاصيل الشكوى والرد -->
+<div class="modal fade" id="complaintModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-file-text"></i> تفاصيل الشكوى ورد المدير</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- معلومات الشكوى -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white">
+                                <i class="bi bi-info-circle"></i> معلومات الشكوى
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="fw-bold">رقم الشكوى:</label>
+                                    <span id="modalComplaintId"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">اسم العميل:</label>
+                                    <span id="modalCustomerName"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">رقم الهاتف:</label>
+                                    <span id="modalCustomerPhone"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">وصف المشكلة:</label>
+                                    <div class="alert alert-warning" id="modalIssueDescription"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">الأولوية:</label>
+                                    <span id="modalPriority" class="badge"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">التصنيف:</label>
+                                    <span id="modalCategory" class="badge bg-info"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">تاريخ الإنشاء:</label>
+                                    <span id="modalCreatedAt"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- نموذج رد المدير -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-lightbulb"></i> حل المدير
+                            </div>
+                            <div class="card-body">
+                                <form id="managerResponseForm">
+                                    <input type="hidden" id="responseComplaintId">
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">الحل المقترح *</label>
+                                        <textarea class="form-control" id="managerSolution" rows="5" 
+                                                  placeholder="اكتب الحل المقترح للمشكلة..." required></textarea>
+                                        <small class="text-muted">اشرح خطوات الحل بالتفصيل</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">تعليمات للموظف *</label>
+                                        <textarea class="form-control" id="managerInstructions" rows="4" 
+                                                  placeholder="تعليمات للموظف المختص..." required></textarea>
+                                        <small class="text-muted">وضح الخطوات المطلوب تنفيذها</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">تحويل إلى موظف</label>
+                                        <select class="form-select" id="assignToEmployee">
+                                            <option value="">اختر موظف...</option>
+                                            {% for emp in employees %}
+                                            <option value="{{ emp.id }}">{{ emp.name }} - {{ emp.department }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">تحديث الأولوية</label>
+                                        <select class="form-select" id="updatePriority">
+                                            <option value="low">منخفض</option>
+                                            <option value="medium" selected>متوسط</option>
+                                            <option value="high">عالي</option>
+                                            <option value="urgent">عاجل</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-success btn-lg">
+                                            <i class="bi bi-send"></i> إرسال الحل للموظف
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- عرض الحل السابق إذا كان موجود -->
+                <div class="row mt-3" id="previousSolutionSection" style="display: none;">
+                    <div class="col-12">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-check-circle"></i> الحل المُرسَل سابقاً
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <label class="fw-bold">الحل:</label>
+                                    <div class="alert alert-success" id="prevSolution"></div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="fw-bold">التعليمات:</label>
+                                    <div class="alert alert-info" id="prevInstructions"></div>
+                                </div>
+                                <div>
+                                    <label class="fw-bold">تاريخ الرد:</label>
+                                    <span id="prevResponseDate"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal عرض تفاصيل التنفيذ -->
+<div class="modal fade" id="executionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-clipboard-check"></i> تفاصيل تنفيذ الموظف</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="fw-bold">ما قام به الموظف:</label>
+                    <div class="alert alert-primary" id="execEmployeeAction"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">طريقة التواصل:</label>
+                    <span id="execContactMethod" class="badge bg-info"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">رد العميل:</label>
+                    <div class="alert alert-warning" id="execCustomerResponse"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">تفاصيل الحل النهائي:</label>
+                    <div class="alert alert-success" id="execResolutionDetails"></div>
+                </div>
+                <div>
+                    <label class="fw-bold">تاريخ الحل:</label>
+                    <span id="execResolvedAt"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/manager_support.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}الدعم الفني - لوحة الموظف{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- الإحصائيات -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-inbox"></i> مهام جديدة</h5>
+                    <h2 id="newTasksCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-hourglass-split"></i> قيد التنفيذ</h5>
+                    <h2 id="inProgressCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-check-circle"></i> منجزة اليوم</h5>
+                    <h2 id="completedCount">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- التبويبات -->
+    <ul class="nav nav-tabs mb-3" id="supportTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="new-tab" data-bs-toggle="tab" data-bs-target="#new" type="button">
+                <i class="bi bi-bell-fill"></i> حلول جديدة من المدير
+                <span class="badge bg-danger" id="newBadge">0</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="progress-tab" data-bs-toggle="tab" data-bs-target="#progress" type="button">
+                <i class="bi bi-arrow-repeat"></i> قيد التنفيذ
+                <span class="badge bg-warning" id="progressBadge">0</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button">
+                <i class="bi bi-check-all"></i> المنجزة
+            </button>
+        </li>
+    </ul>
+
+    <!-- محتوى التبويبات -->
+    <div class="tab-content" id="supportTabsContent">
+        <!-- حلول جديدة -->
+        <div class="tab-pane fade show active" id="new" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-inbox"></i> حلول المدير - بانتظار التنفيذ
+                </div>
+                <div class="card-body">
+                    <div id="newTasksList" class="list-group"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- قيد التنفيذ -->
+        <div class="tab-pane fade" id="progress" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <i class="bi bi-hourglass-split"></i> المهام قيد التنفيذ
+                </div>
+                <div class="card-body">
+                    <div id="progressTasksList" class="list-group"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- المنجزة -->
+        <div class="tab-pane fade" id="completed" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-check-all"></i> المهام المنجزة
+                </div>
+                <div class="card-body">
+                    <div id="completedTasksList" class="list-group"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal عرض الحل وتنفيذه -->
+<div class="modal fade" id="solutionModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-lightbulb"></i> حل المدير وتنفيذه</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- المشكلة والحل -->
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header bg-danger text-white">
+                                <i class="bi bi-exclamation-triangle"></i> المشكلة
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <strong>رقم الشكوى:</strong> <span id="solComplaintId"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>العميل:</strong> <span id="solCustomerName"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>الهاتف:</strong> <span id="solCustomerPhone"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>الأولوية:</strong> <span id="solPriority"></span>
+                                </div>
+                                <div>
+                                    <strong>وصف المشكلة:</strong>
+                                    <div class="alert alert-warning mt-2" id="solIssueDesc"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-patch-check"></i> حل المدير
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <strong>الحل المقترح:</strong>
+                                    <div class="alert alert-success mt-2" id="solManagerSolution"></div>
+                                </div>
+                                <div>
+                                    <strong>التعليمات:</strong>
+                                    <div class="alert alert-info mt-2" id="solManagerInstructions"></div>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock"></i> تاريخ الرد: <span id="solResponseDate"></span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- نموذج التنفيذ -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <i class="bi bi-clipboard-check"></i> تسجيل التنفيذ
+                            </div>
+                            <div class="card-body">
+                                <form id="executionForm">
+                                    <input type="hidden" id="execComplaintId">
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">الإجراء المتخذ *</label>
+                                        <textarea class="form-control" id="employeeAction" rows="4" 
+                                                  placeholder="اشرح بالتفصيل الخطوات التي قمت بها لحل المشكلة..." required></textarea>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">طريقة التواصل مع العميل *</label>
+                                        <select class="form-select" id="contactMethod" required>
+                                            <option value="">اختر...</option>
+                                            <option value="phone">اتصال هاتفي</option>
+                                            <option value="whatsapp">واتساب</option>
+                                            <option value="email">بريد إلكتروني</option>
+                                            <option value="visit">زيارة ميدانية</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">رد العميل *</label>
+                                        <textarea class="form-control" id="customerResponse" rows="3" 
+                                                  placeholder="ماذا قال العميل؟ هل كان راضياً عن الحل؟" required></textarea>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">تفاصيل الحل النهائي *</label>
+                                        <textarea class="form-control" id="resolutionDetails" rows="4" 
+                                                  placeholder="تم الوصول للعميل وحل المشكلة عن طريق..." required></textarea>
+                                        <small class="text-success">
+                                            <i class="bi bi-info-circle"></i> مثال: "تم الوصول للعميل عن طريق الواتساب، تم شرح الحل وتطبيقه بنجاح، العميل راضي تماماً"
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="confirmResolved" required>
+                                            <label class="form-check-label fw-bold text-success" for="confirmResolved">
+                                                <i class="bi bi-check-circle"></i> أؤكد أن المشكلة تم حلها بالكامل
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid gap-2">
+                                        <button type="button" class="btn btn-warning btn-lg" onclick="markInProgress()">
+                                            <i class="bi bi-arrow-repeat"></i> بدء التنفيذ (حفظ كمسودة)
+                                        </button>
+                                        <button type="submit" class="btn btn-success btn-lg">
+                                            <i class="bi bi-check-circle"></i> تأكيد الحل النهائي
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/employee_support.js') }}"></script>
+{% endblock %}

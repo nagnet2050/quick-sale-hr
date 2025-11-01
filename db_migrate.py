@@ -6,9 +6,10 @@ from app.models.leave import Leave
 from app.models.performance import Performance
 from app.models.attendance import Attendance
 from app.models.user import User
+from app.models.whatsapp_models import WhatsAppMessage
 from app import db, create_app
 
-DB_PATH = os.environ.get('DB_PATH', 'hrcloud.db')
+DB_PATH = os.environ.get('DB_PATH', 'instance/hrcloud.db')
 
 # Columns to ensure for each table
 TABLES = {
@@ -56,6 +57,16 @@ TABLES = {
         'username': 'VARCHAR(64)',
         'password_hash': 'VARCHAR(128)',
         'role': 'VARCHAR(32) DEFAULT "user"'
+    },
+    'whatsapp_messages': {
+        'complaint_id': 'INTEGER',
+        'customer_phone': 'VARCHAR(20)',
+        'message_type': "VARCHAR(32) DEFAULT 'text'",
+        'message_content': 'TEXT',
+        'direction': "VARCHAR(32) DEFAULT 'incoming'",
+        'message_date': 'DATETIME',
+        'sent_by': 'INTEGER',
+        'status': "VARCHAR(32) DEFAULT 'sent'"
     }
 }
 
@@ -80,18 +91,18 @@ def main():
     app = create_app()
     with app.app_context():
         db.create_all()
-    print("Checked/created all tables via SQLAlchemy.")
-    db_path = DB_PATH
-    if not os.path.exists(db_path):
-        print(f"Database file {db_path} not found.")
-        return
-    for table, columns in TABLES.items():
-        added = add_missing_columns(db_path, table, columns)
-        if added:
-            print(f"Added columns to {table}: {', '.join(added)}")
-        else:
-            print(f"No columns added to {table} (all present)")
-    print("Migration complete.")
+        print("Checked/created all tables via SQLAlchemy.")
+        db_path = DB_PATH
+        if not os.path.exists(db_path):
+            print(f"Database file {db_path} not found.")
+            return
+        for table, columns in TABLES.items():
+            added = add_missing_columns(db_path, table, columns)
+            if added:
+                print(f"Added columns to {table}: {', '.join(added)}")
+            else:
+                print(f"No columns added to {table} (all present)")
+        print("Migration complete.")
 
 if __name__ == "__main__":
     main()

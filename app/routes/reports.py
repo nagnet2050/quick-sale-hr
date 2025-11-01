@@ -4,6 +4,7 @@ from app.models.employee import Employee
 from app.models.leave import Leave
 from app.models.performance import Performance
 from app.models.attendance import Attendance
+from app.permissions import has_permission
 
 reports_bp = Blueprint('reports', __name__)
 
@@ -11,7 +12,7 @@ reports_bp = Blueprint('reports', __name__)
 @reports_bp.route('/reports')
 @login_required
 def reports():
-    if current_user.role not in ('admin', 'manager', 'executive'):
+    if not has_permission(['admin', 'manager', 'executive']):
         return render_template('unauthorized.html')
     total_employees = Employee.query.count()
     pending_leaves = Leave.query.filter_by(status='Pending').count()

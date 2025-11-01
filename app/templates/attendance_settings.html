@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}{{ 'إعدادات الحضور والانصراف' if lang == 'ar' else 'Attendance Settings' }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-cog"></i>
+                    {{ 'إعدادات الحضور والانصراف' if lang == 'ar' else 'Attendance Settings' }}
+                </h2>
+                <a href="{{ url_for('attendance.attendance') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> {{ 'رجوع' if lang == 'ar' else 'Back' }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- إعدادات الموقع -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ 'إعدادات الموقع' if lang == 'ar' else 'Location Settings' }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">{{ 'خط العرض (Latitude)' if lang == 'ar' else 'Latitude' }}</label>
+                        <input type="number" step="0.000001" class="form-control" id="company_lat" placeholder="30.0444">
+                        <small class="text-muted">{{ 'موقع مقر الشركة' if lang == 'ar' else 'Company location' }}</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ 'خط الطول (Longitude)' if lang == 'ar' else 'Longitude' }}</label>
+                        <input type="number" step="0.000001" class="form-control" id="company_lng" placeholder="31.2357">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ 'المسافة المسموحة (بالمتر)' if lang == 'ar' else 'Max Distance (meters)' }}</label>
+                        <input type="number" class="form-control" id="max_distance_meters" placeholder="100">
+                        <small class="text-muted">{{ 'المسافة المسموحة من مقر الشركة' if lang == 'ar' else 'Allowed distance from company location' }}</small>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="require_location_verification">
+                            <label class="form-check-label" for="require_location_verification">
+                                {{ 'تفعيل التحقق من الموقع' if lang == 'ar' else 'Enable Location Verification' }}
+                            </label>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-info" onclick="getCurrentLocation()">
+                        <i class="fas fa-crosshairs"></i>
+                        {{ 'استخدام موقعي الحالي' if lang == 'ar' else 'Use My Current Location' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- إعدادات الوقت -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock"></i>
+                        {{ 'إعدادات الوقت' if lang == 'ar' else 'Time Settings' }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>{{ 'أوقات الحضور' if lang == 'ar' else 'Check-in Times' }}</h6>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label">{{ 'من' if lang == 'ar' else 'From' }}</label>
+                            <input type="time" class="form-control" id="check_in_start" value="07:00">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">{{ 'إلى' if lang == 'ar' else 'To' }}</label>
+                            <input type="time" class="form-control" id="check_in_end" value="10:00">
+                        </div>
+                    </div>
+
+                    <h6>{{ 'أوقات الانصراف' if lang == 'ar' else 'Check-out Times' }}</h6>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label">{{ 'من' if lang == 'ar' else 'From' }}</label>
+                            <input type="time" class="form-control" id="check_out_start" value="14:00">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">{{ 'إلى' if lang == 'ar' else 'To' }}</label>
+                            <input type="time" class="form-control" id="check_out_end" value="18:00">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="require_time_verification">
+                            <label class="form-check-label" for="require_time_verification">
+                                {{ 'تفعيل التحقق من الوقت' if lang == 'ar' else 'Enable Time Verification' }}
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="allow_outside_hours">
+                            <label class="form-check-label" for="allow_outside_hours">
+                                {{ 'السماح بالتسجيل خارج الأوقات' if lang == 'ar' else 'Allow Registration Outside Hours' }}
+                            </label>
+                        </div>
+                        <small class="text-muted">{{ 'السماح بالتسجيل مع تحذير' if lang == 'ar' else 'Allow with warning' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- إعدادات الأجهزة -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-laptop"></i>
+                        {{ 'إعدادات الأجهزة' if lang == 'ar' else 'Device Settings' }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="require_device_verification">
+                            <label class="form-check-label" for="require_device_verification">
+                                {{ 'تفعيل التحقق من الجهاز' if lang == 'ar' else 'Enable Device Verification' }}
+                            </label>
+                        </div>
+                        <small class="text-muted">{{ 'السماح فقط للأجهزة المسجلة' if lang == 'ar' else 'Only registered devices allowed' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <button class="btn btn-primary btn-lg w-100" onclick="saveSettings()">
+                <i class="fas fa-save"></i>
+                {{ 'حفظ الإعدادات' if lang == 'ar' else 'Save Settings' }}
+            </button>
+        </div>
+    </div>
+
+    <div id="status-message" class="mt-3"></div>
+</div>
+
+<script>
+// تحميل الإعدادات الحالية
+document.addEventListener('DOMContentLoaded', function() {
+    loadSettings();
+});
+
+function loadSettings() {
+    fetch('/api/attendance/settings')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('company_lat').value = data.company_lat;
+            document.getElementById('company_lng').value = data.company_lng;
+            document.getElementById('max_distance_meters').value = data.max_distance_meters;
+            document.getElementById('check_in_start').value = data.check_in_start;
+            document.getElementById('check_in_end').value = data.check_in_end;
+            document.getElementById('check_out_start').value = data.check_out_start;
+            document.getElementById('check_out_end').value = data.check_out_end;
+            document.getElementById('require_location_verification').checked = data.require_location_verification;
+            document.getElementById('require_time_verification').checked = data.require_time_verification;
+            document.getElementById('require_device_verification').checked = data.require_device_verification;
+            document.getElementById('allow_outside_hours').checked = data.allow_outside_hours;
+        });
+}
+
+function saveSettings() {
+    const settings = {
+        company_lat: parseFloat(document.getElementById('company_lat').value),
+        company_lng: parseFloat(document.getElementById('company_lng').value),
+        max_distance_meters: parseInt(document.getElementById('max_distance_meters').value),
+        check_in_start: document.getElementById('check_in_start').value,
+        check_in_end: document.getElementById('check_in_end').value,
+        check_out_start: document.getElementById('check_out_start').value,
+        check_out_end: document.getElementById('check_out_end').value,
+        require_location_verification: document.getElementById('require_location_verification').checked,
+        require_time_verification: document.getElementById('require_time_verification').checked,
+        require_device_verification: document.getElementById('require_device_verification').checked,
+        allow_outside_hours: document.getElementById('allow_outside_hours').checked
+    };
+
+    fetch('/api/attendance/settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('status-message').innerHTML = `
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle"></i> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+    })
+    .catch(error => {
+        document.getElementById('status-message').innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-circle"></i> حدث خطأ: ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+    });
+}
+
+function getCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            document.getElementById('company_lat').value = position.coords.latitude.toFixed(6);
+            document.getElementById('company_lng').value = position.coords.longitude.toFixed(6);
+            alert('{{ "تم تحديد موقعك الحالي!" if lang == "ar" else "Current location set!" }}');
+        }, function(error) {
+            alert('{{ "خطأ في الحصول على الموقع" if lang == "ar" else "Error getting location" }}: ' + error.message);
+        });
+    } else {
+        alert('{{ "المتصفح لا يدعم تحديد الموقع" if lang == "ar" else "Geolocation not supported" }}');
+    }
+}
+</script>
+{% endblock %}

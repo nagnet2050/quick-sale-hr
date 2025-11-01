@@ -23,6 +23,63 @@
       <td>{{ p.allowances }}</td>
     </tr>
     <tr>
+      <td colspan="2">
+        <div class="small text-muted mb-2"><i class="bi bi-list-ul"></i> {{ 'تفصيل الخصومات' if lang=='ar' else 'Deductions Breakdown' }}</div>
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr>
+              <td>{{ 'خصم الغياب' if lang=='ar' else 'Absence Deduction' }}</td>
+              <td class="text-end">{{ p.absence_deduction or 0 }} <span class="text-muted">({{ p.absence_days or 0 }} {{ 'يوم' if lang=='ar' else 'days' }})</span></td>
+            </tr>
+            <tr>
+              <td>{{ 'خصم التأخير' if lang=='ar' else 'Late Deduction' }}</td>
+              <td class="text-end">{{ p.late_deduction or 0 }} <span class="text-muted">({{ p.late_minutes or 0 }} {{ 'دقيقة' if lang=='ar' else 'min' }})</span></td>
+            </tr>
+            <tr>
+              <td>{{ 'إجازات غير مدفوعة' if lang=='ar' else 'Unpaid Leaves' }}</td>
+              <td class="text-end">{{ p.unpaid_leave_deduction or 0 }} <span class="text-muted">({{ p.unpaid_leave_days or 0 }} {{ 'يوم' if lang=='ar' else 'days' }})</span></td>
+            </tr>
+            <tr>
+              <td>{{ 'قسط السلف/القروض' if lang=='ar' else 'Loan/Advance Installment' }}</td>
+              <td class="text-end">{{ p.loan_deduction or 0 }}</td>
+            </tr>
+            {% if loan_breakdown and loan_breakdown|length > 0 %}
+            <tr>
+              <td colspan="2" class="p-0">
+                <table class="table table-borderless table-sm mb-0">
+                  <thead>
+                    <tr class="text-muted">
+                      <th class="small">#</th>
+                      <th class="small">{{ 'النوع' if lang=='ar' else 'Type' }}</th>
+                      <th class="small">{{ 'السبب' if lang=='ar' else 'Reason' }}</th>
+                      <th class="small text-end">{{ 'المستحق' if lang=='ar' else 'Due' }}</th>
+                      <th class="small text-end">{{ 'المتبقي' if lang=='ar' else 'Remaining' }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for l in loan_breakdown %}
+                    <tr>
+                      <td class="small">{{ l.id }}</td>
+                      <td class="small">{{ l.type or '-' }}</td>
+                      <td class="small">{{ l.reason or '-' }}</td>
+                      <td class="small text-end">{{ l.due }}</td>
+                      <td class="small text-end">{{ l.remaining }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+            {% endif %}
+            <tr>
+              <td>{{ 'خصومات أخرى' if lang=='ar' else 'Other Deductions' }}</td>
+              <td class="text-end">{{ p.other_deductions or 0 }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    </tr>
+    <tr>
       <td><strong>{{ 'الخصومات' if lang=='ar' else 'Deductions' }}</strong></td>
       <td>{{ p.deductions }}</td>
     </tr>

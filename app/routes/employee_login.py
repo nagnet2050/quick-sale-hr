@@ -1,10 +1,12 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, session
-from flask_login import login_user
+from flask_login import login_user, login_required
 from app.models.user import User
 from app import db
+from app.models.employee import Employee
 
 employee_login_bp = Blueprint('employee_login', __name__)
 
+@login_required
 @employee_login_bp.route('/employee-login', methods=['GET', 'POST'])
 def employee_login():
     error = None
@@ -29,3 +31,22 @@ def employee_login():
                 error = 'بيانات الدخول غير صحيحة.'
                 session['login_attempts'] += 1
     return render_template('employee_login.html', error=error, lang=session.get('lang', 'ar'))
+
+@employee_login_bp.route('/employee_login', methods=['GET', 'POST'])
+def employee_login_post():
+    from flask_login import login_user
+    from flask import session, flash, redirect, url_for, render_template, request
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        emp = Employee.query.filter_by(name=username).first()
+        if emp and emp.check_password(password):
+            login_user(emp)
+            flash('تم تسجيل الدخول بنجاح', 'success')
+            if emp.role == 'manager':
+                return redirect(url_for('dashboard.dashboard'))
+            else:
+                return redirect(url_for('employees.employees'))
+        else:
+            flash('اسم الموظف أو كلمة المرور غير صحيحة', 'danger')
+    return render_template('employee_login.html', lang=session.get('lang', 'ar'))

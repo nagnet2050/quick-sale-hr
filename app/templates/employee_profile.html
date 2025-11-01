@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}بيانات الموظف{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <h3 class="mb-4">بيانات الموظف</h3>
+            <table class="table table-bordered">
+                <tr><th>الكود</th><td>{{ employee.code }}</td></tr>
+                <tr><th>الاسم</th><td>{{ employee.name }}</td></tr>
+                <tr><th>المسمى الوظيفي</th><td>{{ employee.job_title }}</td></tr>
+                <tr><th>القسم</th><td>{{ employee.department }}</td></tr>
+                <tr><th>الهاتف</th><td>{{ employee.phone }}</td></tr>
+                <tr><th>البريد الإلكتروني</th><td>{{ employee.email }}</td></tr>
+                <tr><th>الراتب</th><td>{{ '{:,.2f}'.format(employee.salary) }} ج.م</td></tr>
+                <tr><th>الحالة</th><td>{{ 'نشط' if employee.active else 'غير نشط' }}</td></tr>
+            </table>
+            <div class="mt-4">
+                <h5>حالة التواجد</h5>
+                <div id="presence-status">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span id="status-text">جاري التحميل...</span>
+                </div>
+                <div id="last-activity" class="mt-2">آخر نشاط: جاري التحميل...</div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function fetchPresenceStatus() {
+    fetch('/api/presence/status/{{ employee.id }}')
+        .then(res => res.json())
+        .then(data => {
+            let status = data.status;
+            let last_activity = data.last_activity;
+            let statusText = '';
+            let dotClass = '';
+            if (status === 'online') {
+                statusText = 'متصل'; dotClass = 'online';
+            } else if (status === 'away') {
+                statusText = 'غير متاح'; dotClass = 'away';
+            } else {
+                statusText = 'غير متصل'; dotClass = 'offline';
+            }
+            document.getElementById('status-text').textContent = statusText;
+            document.getElementById('status-dot').className = 'status-dot ' + dotClass;
+            document.getElementById('last-activity').textContent = 'آخر نشاط: ' + (last_activity ? new Date(last_activity).toLocaleString('ar-EG') : 'غير متوفر');
+        });
+}
+fetchPresenceStatus();
+setInterval(fetchPresenceStatus, 60000);
+</script>
+<style>
+.status-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-left: 5px; }
+.status-dot.online { background: #28a745; }
+.status-dot.away { background: #ffc107; }
+.status-dot.offline { background: #dc3545; }
+</style>
+{% endblock %}

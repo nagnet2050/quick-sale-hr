@@ -12,3 +12,4 @@ class SupportTicket(db.Model):
     management_response = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)  # الموظف المسؤول عن التذكرة

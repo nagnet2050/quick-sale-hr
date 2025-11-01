@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'لوحة الموظف' if lang == 'ar' else 'Employee Dashboard' }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-12 mb-4">
+    <h2 class="theme-color fw-bold text-center">{{ 'لوحة الموظف' if lang == 'ar' else 'Employee Dashboard' }}</h2>
+  </div>
+  <div class="row g-3 mb-4 justify-content-center">
+    <div class="col-md-3 col-6">
+      <a href="/ess" class="btn btn-lg btn-block bg-theme w-100"><i class="bi bi-person-badge"></i> {{ 'بوابة الموظف' if lang=='ar' else 'ESS' }}</a>
+    </div>
+    <div class="col-md-3 col-6">
+      <a href="/employee/{{ session.get('employee_id') or '' }}" class="btn btn-lg btn-block btn-outline-primary w-100"><i class="bi bi-person"></i> {{ 'ملفي' if lang=='ar' else 'My Profile' }}</a>
+    </div>
+    <div class="col-md-3 col-6">
+      <a href="/leave" class="btn btn-lg btn-block btn-outline-warning w-100"><i class="bi bi-calendar"></i> {{ 'الإجازات' if lang=='ar' else 'Leave' }}</a>
+    </div>
+    <div class="col-md-3 col-6">
+      <a href="{{ url_for('support_hub.support_hub') }}" class="btn btn-lg btn-block btn-outline-secondary w-100"><i class="bi bi-life-preserver"></i> {{ 'الدعم والمتابعة' if lang=='ar' else 'Support' }}</a>
+    </div>
+  </div>
+  <div class="col-12">
+    <div class="alert alert-info text-center" role="alert">
+      <i class="bi bi-info-circle"></i> {{ 'مرحباً! هذه لوحة مبسطة تعرض لك أهم الروابط المخصصة لك.' if lang=='ar' else 'Welcome! This is your simplified dashboard with links tailored for you.' }}
+    </div>
+  </div>
+</div>
+{% endblock %}

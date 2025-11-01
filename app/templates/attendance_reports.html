@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تقارير الحضور' if lang == 'ar' else 'Attendance Reports' }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-chart-line"></i> {{ 'لوحة تقارير الحضور' if lang == 'ar' else 'Attendance Reports Dashboard' }}</h2>
+                <div class="btn-group">
+                    <a href="?period=today" class="btn btn-outline-primary {{ 'active' if period == 'today' else '' }}">
+                        {{ 'اليوم' if lang == 'ar' else 'Today' }}
+                    </a>
+                    <a href="?period=week" class="btn btn-outline-primary {{ 'active' if period == 'week' else '' }}">
+                        {{ 'هذا الأسبوع' if lang == 'ar' else 'This Week' }}
+                    </a>
+                    <a href="?period=month" class="btn btn-outline-primary {{ 'active' if period == 'month' else '' }}">
+                        {{ 'هذا الشهر' if lang == 'ar' else 'This Month' }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إحصائيات عامة -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-check fa-3x mb-3"></i>
+                    <h3 class="mb-0">{{ stats.total_checkins }}</h3>
+                    <p class="mb-0">{{ 'إجمالي الحضور' if lang == 'ar' else 'Total Check-ins' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-times fa-3x mb-3"></i>
+                    <h3 class="mb-0">{{ stats.total_checkouts }}</h3>
+                    <p class="mb-0">{{ 'إجمالي الانصراف' if lang == 'ar' else 'Total Check-outs' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 bg-warning text-dark">
+                <div class="card-body text-center">
+                    <i class="fas fa-map-marker-alt fa-3x mb-3"></i>
+                    <h3 class="mb-0">{{ stats.location_violations }}</h3>
+                    <p class="mb-0">{{ 'خارج الموقع' if lang == 'ar' else 'Location Violations' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 bg-danger text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-3x mb-3"></i>
+                    <h3 class="mb-0">{{ stats.time_violations }}</h3>
+                    <p class="mb-0">{{ 'خارج الأوقات' if lang == 'ar' else 'Time Violations' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إحصائيات التأخير -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-hourglass-half"></i>
+                        {{ 'إحصائيات التأخير' if lang == 'ar' else 'Late Statistics' }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="late-stats-loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div id="late-stats-content" style="display: none;">
+                        <div class="mb-3">
+                            <h6>{{ 'متوسط التأخير العام' if lang == 'ar' else 'Overall Average Late' }}</h6>
+                            <h2 id="overall-avg-late" class="text-danger"></h2>
+                        </div>
+                        <div>
+                            <h6>{{ 'إجمالي الموظفين المتأخرين' if lang == 'ar' else 'Total Late Employees' }}</h6>
+                            <h3 id="total-late-employees"></h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy"></i>
+                        {{ 'الأكثر تأخيراً (Top 5)' if lang == 'ar' else 'Top 5 Late' }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="top-late-loading" class="text-center py-5">
+                        <div class="spinner-border text-danger" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <table id="top-late-table" class="table table-striped" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>{{ 'الاسم' if lang == 'ar' else 'Name' }}</th>
+                                <th>{{ 'القسم' if lang == 'ar' else 'Department' }}</th>
+                                <th>{{ 'عدد المرات' if lang == 'ar' else 'Count' }}</th>
+                                <th>{{ 'المتوسط (دقيقة)' if lang == 'ar' else 'Avg (min)' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-late-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- أدوات إضافية -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tools"></i>
+                        {{ 'أدوات التقارير' if lang == 'ar' else 'Report Tools' }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#generateReportModal">
+                                <i class="fas fa-file-alt"></i>
+                                {{ 'إنشاء تقرير مخصص' if lang == 'ar' else 'Generate Custom Report' }}
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#linkPayrollModal">
+                                <i class="fas fa-link"></i>
+                                {{ 'ربط بالرواتب' if lang == 'ar' else 'Link to Payroll' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Generate Report -->
+<div class="modal fade" id="generateReportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ 'إنشاء تقرير حضور' if lang == 'ar' else 'Generate Attendance Report' }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">{{ 'رقم الموظف' if lang == 'ar' else 'Employee ID' }}</label>
+                    <input type="number" id="rep_employee_id" class="form-control" placeholder="{{ 'اكتب رقم الموظف' if lang == 'ar' else 'Enter employee ID' }}" />
+                </div>
+                <div class="row g-2">
+                    <div class="col">
+                        <label class="form-label">{{ 'بداية الفترة' if lang == 'ar' else 'Period Start' }}</label>
+                        <input type="date" id="rep_start" class="form-control" />
+                    </div>
+                    <div class="col">
+                        <label class="form-label">{{ 'نهاية الفترة' if lang == 'ar' else 'Period End' }}</label>
+                        <input type="date" id="rep_end" class="form-control" />
+                    </div>
+                </div>
+                <div class="small text-muted mt-2">{{ 'تلميح: اختر نفس فترة الراتب لسهولة الربط' if lang == 'ar' else 'Tip: use the same payroll period' }}</div>
+                <div id="rep_result" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="submitGenerateReport()">{{ 'إنشاء' if lang == 'ar' else 'Generate' }}</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+<!-- Modal: Link to Payroll -->
+<div class="modal fade" id="linkPayrollModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ 'ربط تقرير بالراتب' if lang == 'ar' else 'Link Report to Payroll' }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">{{ 'رقم التقرير' if lang == 'ar' else 'Report ID' }}</label>
+                    <input type="number" id="link_report_id" class="form-control" placeholder="{{ 'من نتيجة الإنشاء' if lang == 'ar' else 'From generate result' }}" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ 'رقم مسير الراتب' if lang == 'ar' else 'Payroll ID' }}</label>
+                    <input type="number" id="link_payroll_id" class="form-control" placeholder="{{ 'اكتب رقم الراتب' if lang == 'ar' else 'Enter payroll ID' }}" />
+                </div>
+                <div id="link_result" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="submitLinkToPayroll()">{{ 'ربط' if lang == 'ar' else 'Link' }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadLateStatistics();
+        // تعبئة التواريخ الافتراضية: بداية ونهاية الشهر الحالي
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+        const end = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().slice(0,10);
+        const repStart = document.getElementById('rep_start');
+        const repEnd = document.getElementById('rep_end');
+        if (repStart) repStart.value = start;
+        if (repEnd) repEnd.value = end;
+});
+
+function loadLateStatistics() {
+    const period = '{{ period }}';
+    
+    fetch(`/api/attendance/reports/late-stats?period=${period}&limit=5`)
+        .then(res => res.json())
+        .then(data => {
+            // إخفاء Loading
+            document.getElementById('late-stats-loading').style.display = 'none';
+            document.getElementById('top-late-loading').style.display = 'none';
+            
+            // عرض البيانات
+            document.getElementById('late-stats-content').style.display = 'block';
+            document.getElementById('top-late-table').style.display = 'table';
+            
+            // الإحصائيات العامة
+            document.getElementById('overall-avg-late').textContent = 
+                `${data.overall_average_late_minutes.toFixed(1)} {{ 'دقيقة' if lang == 'ar' else 'minutes' }}`;
+            document.getElementById('total-late-employees').textContent = data.total_late_employees;
+            
+            // Top Late
+            const tbody = document.getElementById('top-late-body');
+            tbody.innerHTML = '';
+            
+            data.top_late_employees.forEach((emp, index) => {
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${emp.name}</td>
+                        <td>${emp.department || '-'}</td>
+                        <td><span class="badge bg-warning">${emp.late_count}</span></td>
+                        <td><span class="badge bg-danger">${emp.average_late_minutes.toFixed(1)}</span></td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        })
+        .catch(error => {
+            console.error('Error loading late statistics:', error);
+        });
+}
+
+async function submitGenerateReport() {
+    const employee_id = Number(document.getElementById('rep_employee_id').value);
+    const period_start = document.getElementById('rep_start').value;
+    const period_end = document.getElementById('rep_end').value;
+    const out = document.getElementById('rep_result');
+    out.innerHTML = '<div class="alert alert-info">{{ "جاري إنشاء التقرير..." if lang=="ar" else "Generating report..." }}</div>';
+
+    try {
+        const res = await fetch('/api/attendance/reports/generate', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ employee_id, period_type: 'custom', period_start, period_end })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            out.innerHTML = `<div class="alert alert-success">{{ 'تم إنشاء التقرير بنجاح. رقم التقرير:' if lang=='ar' else 'Report created. ID:' }} ${data.report.id}</div>`;
+            // تعبئة رقم التقرير تلقائياً في نافذة الربط
+            const linkReport = document.getElementById('link_report_id');
+            if (linkReport) linkReport.value = data.report.id;
+        } else {
+            out.innerHTML = `<div class="alert alert-danger">${data.error || data.message || 'Error'}</div>`;
+        }
+    } catch (e) {
+        out.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+    }
+}
+
+async function submitLinkToPayroll() {
+    const report_id = Number(document.getElementById('link_report_id').value);
+    const payroll_id = Number(document.getElementById('link_payroll_id').value);
+    const out = document.getElementById('link_result');
+    out.innerHTML = '<div class="alert alert-info">{{ "جاري الربط..." if lang=="ar" else "Linking..." }}</div>';
+    try {
+        const res = await fetch('/api/attendance/link-to-payroll', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ report_id, payroll_id })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            out.innerHTML = `<div class="alert alert-danger">${data.error || data.message || 'Error'}</div>`;
+            return;
+        }
+        out.innerHTML = `<div class="alert alert-success">{{ 'تم الربط وحساب الخصومات/الإضافي تلقائياً.' if lang=='ar' else 'Linked and auto-calculated successfully.' }}</div>`;
+    } catch (e) {
+        out.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+    }
+}
+</script>
+{% endblock %}
