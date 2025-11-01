@@ -1,8 +1,10 @@
 Param(
-    [string]$RepoPath = (Resolve-Path "..\"),
+    [string]$RepoPath = (Resolve-Path "..\\"),
     [string]$Branch = "main",
     [int]$IntervalSeconds = 10,
-    [switch]$NoPull
+    [switch]$NoPull,
+    [string]$ActiveStart = $null,   # e.g. "09:00"
+    [string]$ActiveEnd   = $null    # e.g. "21:00"
 )
 
 <#
@@ -10,7 +12,7 @@ Param(
     Simple auto-commit and auto-push watcher for Git repositories (Windows PowerShell).
 
  .DESCRIPTION
-    Polls the Git working tree every N seconds. If there are any changes, it will:
+        Polls the Git working tree every N seconds. If there are any changes, it will:
       1) git add -A
       2) git commit -m "chore(auto): sync <timestamp>"
       3) git pull --rebase origin <branch>   (unless -NoPull is set)
@@ -20,6 +22,7 @@ Param(
     - Respects your .gitignore automatically via git add
     - Skips if there are no changes
     - Handles transient errors and keeps running
+        - Optional active time window via -ActiveStart and -ActiveEnd (HH:mm)
 
  .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts/auto_push.ps1 -RepoPath . -Branch main -IntervalSeconds 10
@@ -43,6 +46,19 @@ try {
     Set-Location $RepoFullPath
     Write-Log "Auto push started in: $RepoFullPath (branch: $Branch, interval: ${IntervalSeconds}s)"
 
+    # Single-instance lock (prevents duplicate runners)
+    $lockPath = Join-Path $RepoFullPath ".git/auto_push.lock"
+    if (Test-Path $lockPath) {
+        try {
+            $existingPid = [int](Get-Content $lockPath -ErrorAction Stop)
+            if ($existingPid -and (Get-Process -Id $existingPid -ErrorAction SilentlyContinue)) {
+                Write-Log "Another auto_push instance is running (PID=$existingPid). Exiting." "WARN"
+                exit 0
+            }
+        } catch {}
+    }
+    Set-Content -Path $lockPath -Value $PID -Encoding ascii
+
     # Verify repository
     $gitTop = (git rev-parse --show-toplevel 2>$null)
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gitTop)) {
@@ -57,8 +73,61 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Failed to checkout branch '$Branch'" }
     }
 
+    # Helper to check active window
+    function In-ActiveWindow {
+        param([DateTime]$now)
+        if ([string]::IsNullOrWhiteSpace($ActiveStart) -or [string]::IsNullOrWhiteSpace($ActiveEnd)) {
+            return $true
+        }
+        try {
+            $startTs = [TimeSpan]::Parse($ActiveStart)
+            $endTs   = [TimeSpan]::Parse($ActiveEnd)
+        } catch {
+            Write-Log "Invalid ActiveStart/ActiveEnd format. Expected HH:mm" "WARN"
+            return $true
+        }
+        $todayStart = [datetime]::Today + $startTs
+        $todayEnd   = [datetime]::Today + $endTs
+
+        if ($todayEnd -lt $todayStart) {
+            # window crosses midnight (e.g., 21:00 -> 06:00)
+            return ($now -ge $todayStart -or $now -lt ($todayEnd.AddDays(1)))
+        } else {
+            return ($now -ge $todayStart -and $now -le $todayEnd)
+        }
+    }
+
+    function Next-ActiveStart {
+        param([DateTime]$now)
+        if ([string]::IsNullOrWhiteSpace($ActiveStart) -or [string]::IsNullOrWhiteSpace($ActiveEnd)) {
+            return $now.AddSeconds($IntervalSeconds)
+        }
+        $startTs = [TimeSpan]::Parse($ActiveStart)
+        $endTs   = [TimeSpan]::Parse($ActiveEnd)
+        $todayStart = [datetime]::Today + $startTs
+        $todayEnd   = [datetime]::Today + $endTs
+        if ($todayEnd -lt $todayStart) {
+            # overnight window
+            if ($now -lt $todayStart) { return $todayStart }
+            if ($now -ge $todayStart) { return $todayStart.AddDays(1) }
+        } else {
+            if ($now -lt $todayStart) { return $todayStart }
+            if ($now -ge $todayEnd)   { return $todayStart.AddDays(1) }
+        }
+        return $now.AddSeconds($IntervalSeconds)
+    }
+
     while ($true) {
         try {
+            $now = Get-Date
+            if (-not (In-ActiveWindow -now $now)) {
+                $nextStart = Next-ActiveStart -now $now
+                $sleepSecs = [int][Math]::Max([Math]::Min(($nextStart - $now).TotalSeconds, 900), 60)
+                Write-Log "Outside active window ($ActiveStart-$ActiveEnd). Sleeping ~${sleepSecs}s until next start: $($nextStart.ToString('HH:mm'))" "INFO"
+                Start-Sleep -Seconds $sleepSecs
+                continue
+            }
+
             $status = git status --porcelain
             if ($LASTEXITCODE -ne 0) { throw "git status failed" }
 
@@ -97,4 +166,12 @@ try {
 catch {
     Write-Log $_.Exception.Message "ERROR"
     exit 1
+}
+finally {
+    try {
+        if (Test-Path $lockPath) {
+            $contentPid = 0; try { $contentPid = [int](Get-Content $lockPath -ErrorAction Stop) } catch {}
+            if ($contentPid -eq $PID) { Remove-Item $lockPath -Force -ErrorAction SilentlyContinue }
+        }
+    } catch {}
 }
